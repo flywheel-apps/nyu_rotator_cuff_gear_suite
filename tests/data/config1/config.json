@@ -1,0 +1,34 @@
+{
+    "config": {},
+    "inputs": {
+        "reader_csv": {
+            "base": "file",
+            "hierarchy": {
+                "type": "project",
+                "id": "5d14e9c24ab02500397a1453"
+            },
+            "location": {
+                "name": "users-short.csv",
+                "path": "DATA_DIR/input/reader_csv/users-short.csv"
+            },
+            "object": {
+                "info": {},
+                "tags": [],
+                "measurements": [],
+                "classification": {},
+                "mimetype": "text/csv",
+                "type": "tabular data",
+                "modality": null,
+                "size": 153
+            }
+        },
+        "api-key": {
+            "base": "api-key",
+            "key": "nyu.dev.flywheel.io:OWRa4hkkkMAkp7EEws"
+        }
+    },
+    "destination": {
+        "type": "session",
+        "id": "5e5975430cc73f4694c82204"
+    }
+}

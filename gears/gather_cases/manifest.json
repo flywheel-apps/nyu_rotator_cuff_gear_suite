@@ -1,0 +1,26 @@
+{
+    "name": "gather-cases",
+    "label": "Gather Case Data from Readers",
+    "description": "This gear gathers all assessed case data from the reader projects. The assessed case data is collated with data from other readers into the origin case of the master project.",
+    "author": "Flywheel",
+    "maintainer": "Flywheel <support@flywheel.io>",
+    "license": "Other",
+    "url": "https://github.com/flywheel-apps/gather-cases",
+    "source": "https://github.com/flywheel-apps/gather-cases",
+    "cite": "",
+    "version": "0.0.1-dev-c",
+    "custom": {
+        "docker-image": "flywheel/gather-cases:0.0.1-dev-c",
+        "gear-builder": {
+            "category": "analysis",
+            "image": "flywheel/gather-cases:0.0.1-dev-c"
+        }
+    },
+    "inputs": {
+        "api-key": {
+            "base": "api-key"
+        }
+    },
+    "config": {},
+    "command": "/flywheel/v0/run.py"
+}

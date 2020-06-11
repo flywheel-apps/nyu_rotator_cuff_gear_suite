@@ -1,0 +1,34 @@
+{
+    "name": "assign-cases",
+    "label": "Assign Cases to Readers",
+    "description": "This gear assigns cases from the master project to readers given constraints. Each case is assessed by a \"case_coverage\" number of readers. Each reader elects to have a maximum number of cases (\"max_cases\") to assess.",
+    "author": "Flywheel",
+    "maintainer": "Flywheel <support@flywheel.io>",
+    "license": "Other",
+    "url": "https://github.com/flywheel-apps/assign-cases",
+    "source": "https://github.com/flywheel-apps/assign-cases",
+    "cite": "",
+    "version": "0.0.1-dev-n",
+    "custom": {
+        "docker-image": "flywheel/assign-cases:0.0.1-dev-n",
+        "gear-builder": {
+            "category": "analysis",
+            "image": "flywheel/assign-cases:0.0.1-dev-n"
+        }
+    },
+    "inputs": {
+        "api-key": {
+            "base": "api-key"
+        }
+    },
+    "config": {
+        "case_coverage": {
+            "default": 3,
+            "minimum": 1,
+            "maximum": 10,
+            "description": "The number of readers each case will be provided to.",
+            "type": "integer"
+        }
+    },
+    "command": "/flywheel/v0/run.py"
+}

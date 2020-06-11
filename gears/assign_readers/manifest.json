@@ -1,0 +1,59 @@
+{
+    "name": "assign-readers",
+    "label": "Assign Readers to Created Projects",
+    "description": "This gear assigns readers to projects with each reader as the sole user to a project. Should that project already exist, the maximum cases each reader can be assigned may be changed.",
+    "author": "Flywheel",
+    "maintainer": "Flywheel <support@flywheel.io>",
+    "license": "Other",
+    "url": "https://github.com/flywheel-apps/assign-readers",
+    "source": "https://github.com/flywheel-apps/assign-readers",
+    "cite": "",
+    "version": "0.0.1-dev-a",
+    "custom": {
+        "docker-image": "flywheel/assign-readers:0.0.1-dev-a",
+        "gear-builder": {
+            "category": "analysis",
+            "image": "flywheel/assign-readers:0.0.1-dev-a"
+        }
+    },
+    "inputs": {
+        "api-key": {
+            "base": "api-key"
+        },
+        "reader_csv": {
+            "description": "A csv file containing email, first_name, last_name, and max_cases of each reader.",
+            "optional": true,
+            "base": "file",
+            "type": {
+                "enum": [
+                    "tabular data"
+                ]
+            }
+        }
+    },
+    "config": {
+        "reader_email": {
+            "optional": true,
+            "description": "The email of the reader being assigned to a project or updating that project.",
+            "type": "string"
+        },
+        "reader_firstname": {
+            "optional": true,
+            "description": "The lastname of the reader being assigned to a project or updating that project.",
+            "type": "string"
+        },
+        "reader_lastname": {
+            "optional": true,
+            "description": "The lastname of the reader being assigned to a project or updating that project.",
+            "type": "string"
+        },
+        "max_cases": {
+            "default": 30,
+            "minimum": 1,
+            "maximum": 600,
+            "description": "The maximum number of cases the reader will assess. This value takes precedence over an entry in the csv file.",
+            "type": "integer"
+        }
+    },
+    "command": "/flywheel/v0/run.py"
+}
