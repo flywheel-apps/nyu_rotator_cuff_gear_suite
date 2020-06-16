@@ -219,7 +219,15 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
         new_group_user = new_group_readers.loc[indx, "email"]
         # TODO: The following line may change with the v12.0.0 SDK
         user_permission = {"_id": new_group_user, "access": "rw"}
-        group.add_permission(user_permission)
+
+        if [perm.id for perm in group.permissions if perm.id == new_group_user]:
+            log.warning(
+                "User, %s, is an administrator of the Readers group.", 
+                new_group_user
+            )
+        else:
+            group.add_permission(user_permission)
+
         readers_to_instantiate.append(
             (new_group_user, int(new_group_readers.max_cases[indx]))
         )
