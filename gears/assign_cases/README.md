@@ -4,7 +4,7 @@ The `assign-cases` gear distributes cases from a populated "Master Project" to r
 
 The assignment of each case to a **case_coverage** number of distinct readers is done by random sampling of available readers without replacement. Each reader is considered available if they are assigned less than their maximum number of cases (**max_cases**). Furthermore, readers with the least number of assignments are preferred for selection. This results in cases being distributed to readers as evenly as possible within the above constraints.
 
-Depending on the number of cases to assign to readers, the execution of this gear may take hours.  However, once a case is assigned and present in any reader project it is available to be assessed. On completion of this gear any remaining coordination data is recorded in the associated Master Project and reader projects.
+Depending on the number of cases to assign to readers, the execution of this gear may take hours.  However, once a case is assigned, present and indexed in any reader project it is available to be assessed. On completion of this gear any remaining coordination data is recorded in the associated Master Project and reader projects.
 
 ## Prerequisite
 
@@ -12,13 +12,15 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Website
 
-"https://github.com/flywheel-apps/assign-cases"
+[https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite](https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite)
 
 ## Usage Notes
 
-The `assign-readers` gear is executed with the following configuration parameter. Successfull execution ensures outputs described below.
+The `assign-cases` gear relies on cases present in a "Master Project" that haven’t been distributed and the number of available readers. On execution, the gear will distribute each case to a specified number of readers.
 
-NOTE: This gear assumes that you are running it from within the "Master Project".  Attempting to execute this gear from within a reader project will fail.
+The `assign-cases` gear is executed with the following configuration parameter. Successfull execution ensures outputs described below.
+
+NOTE: This gear assumes that you are running it from within a "Master Project".  Attempting to execute this gear from within a reader project will fail.
 
 NOTE: Additional execution without first updating the number of cases and/or the number of readers will result in no actions performed.
 

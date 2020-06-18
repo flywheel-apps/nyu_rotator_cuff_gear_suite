@@ -709,9 +709,10 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
         #       2. give some indication to the reader that they need to
         #          correct their assessment
         dest_ohifViewer = dest_session.info["ohifViewer"]
-        for k, _ in dest_ohifViewer["read"][reader_id]["notes"].items():
-            dest_ohifViewer["read"][reader_id]["notes"].pop(k)
-        dest_ohifViewer["read"][reader_id]["notes"]["additionalNotes"] = reason
+        _reader_id = reader_id.replace(".", "_")
+        for k, _ in dest_ohifViewer["read"][_reader_id]["notes"].copy().items():
+            dest_ohifViewer["read"][_reader_id]["notes"].pop(k)
+        dest_ohifViewer["read"][_reader_id]["notes"]["additionalNotes"] = reason
 
         dest_session.update_info({"ohifViewer": dest_ohifViewer})
 

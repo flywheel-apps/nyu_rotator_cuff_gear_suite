@@ -5,8 +5,8 @@
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
     "license": "Other",
-    "url": "https://github.com/flywheel-apps/assign-cases",
-    "source": "https://github.com/flywheel-apps/assign-cases",
+    "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
+    "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_cases",
     "cite": "",
     "version": "0.0.1-dev-n",
     "custom": {

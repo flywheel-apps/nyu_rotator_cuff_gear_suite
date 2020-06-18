@@ -1,6 +1,6 @@
 # gather-cases
 
-The `gather-cases` gear collects all assessed case data from the reader projects. Data from assessed cases is collated into the origin case of the "Master Project",  into the "Master Project" itself, and reported on in tabular output described below.
+The `gather-cases` gear collects all assessed case data from the reader projects. Data from assessed cases is collated into the origin case of a "Master Project",  into a "Master Project" itself, and reported on in tabular output described below.
 
 Each case is considered "completed" by a reader if
 
@@ -13,7 +13,7 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Website
 
-"https://github.com/flywheel-apps/gather-cases"
+[https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite](https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite)
 
 ## Usage Notes
 

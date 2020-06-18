@@ -14,7 +14,7 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Website
 
-"https://github.com/flywheel-apps/assign-cases"
+[https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite](https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite)
 
 ## Usage Notes
 
@@ -24,8 +24,8 @@ NOTE: This gear assumes that you are running it from within the "Master Project"
 
 ### Gear Configuration
 
-**reader_email** (required): The email of the reader to assign the specific case.
-**assignment_reason** (required): The reason for the new assignment or reassignment (e.g. breaking tie, minority assessment).
+* **reader_email** (required): The email of the reader to assign the specific case.
+* **assignment_reason** (required): The reason for the new assignment or reassignment (e.g. breaking tie, minority assessment).
 
 ### Expected Output
 

@@ -1,19 +1,19 @@
 {
-    "name": "assign-cases",
-    "label": "Assign Cases to Readers",
-    "description": "This gear assigns cases from the master project to readers given constraints. Each case is assessed by a \"case_coverage\" number of readers. Each reader elects to have a maximum number of cases (\"max_cases\") to assess.",
+    "name": "assign-single-case",
+    "label": "Assign Single Case to Reader",
+    "description": "This gear assigns a single case to a specified readers from a master project given constraints. Each case is assessed by a \"case_coverage\" number of readers. If the case is being assigned to an additional reader, the \"case_coverage\" is incremented. Each reader elects to have a maximum number of cases (\"max_cases\") to assess. If this gear attempts to assign more than \"max_cases\", the gear fails with message.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
     "license": "Other",
-    "url": "https://github.com/flywheel-apps/assign-cases",
-    "source": "https://github.com/flywheel-apps/assign-cases",
+    "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
+    "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_single_case",
     "cite": "",
     "version": "0.0.1-dev-n",
     "custom": {
-        "docker-image": "flywheel/assign-cases:0.0.1-dev-n",
+        "docker-image": "flywheel/assign-single-case:0.0.1-dev-n",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-cases:0.0.1-dev-n"
+            "image": "flywheel/assign-single-case:0.0.1-dev-n"
         }
     },
     "inputs": {
@@ -22,12 +22,19 @@
         }
     },
     "config": {
-        "case_coverage": {
-            "default": 3,
-            "minimum": 1,
-            "maximum": 10,
-            "description": "The number of readers each case will be provided to.",
-            "type": "integer"
+        "reader_email": {
+            "optional": false,
+            "description": "The email of the readers being assigned this case.",
+            "type": "string"
+        },
+        "assignment_reason": {
+            "description": "The reason for assignment or reassignment (e.g. breaking a tie, minority assignment).",
+            "default": "Breaking a Tie",
+            "type": "string",
+            "enum": [
+                "Breaking a Tie",
+                "Correct Minority Assessment"
+            ]
         }
     },
     "command": "/flywheel/v0/run.py"
