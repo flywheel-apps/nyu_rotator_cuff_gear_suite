@@ -8,9 +8,9 @@ from pathlib import Path
 import pandas as pd
 from gear_toolkit import gear_toolkit_context
 
-from .utils.check_jobs import check_for_duplicate_execution
-from .utils.container_operations import find_or_create_group
-from .utils.manage_cases import (
+from utils.check_jobs import check_for_duplicate_execution
+from utils.container_operations import find_or_create_group
+from utils.manage_cases import (
     InvalidGroupError,
     InvalidInputError,
     create_or_update_reader_projects,
@@ -74,7 +74,10 @@ def define_reader_csv(context):
                     # This will trigger an update in the metadata on assign-cases
                 # else if we have reader's email, firstname, and lastname
                 elif (
-                    context.config.get("reader_email")
+                    context.config.get("max_cases")
+                    and (context.config.get("max_cases") > 0)
+                    and (context.config.get("max_cases") < 600)
+                    and context.config.get("reader_email")
                     and re.search(regex, context.config.get("reader_email"))
                     and context.config.get("reader_firstname")
                     and context.config.get("reader_lastname")
@@ -108,7 +111,10 @@ def define_reader_csv(context):
 
     # if the csv is not provided and we have a valid reader entry
     if not reader_csv_path and (
-        context.config.get("reader_email")
+        context.config.get("max_cases")
+        and (context.config.get("max_cases") > 0)
+        and (context.config.get("max_cases") < 600)
+        and context.config.get("reader_email")
         and re.search(regex, context.config.get("reader_email"))
         and context.config.get("reader_firstname")
         and context.config.get("reader_lastname")

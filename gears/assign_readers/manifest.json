@@ -5,8 +5,8 @@
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
     "license": "Other",
-    "url": "https://github.com/flywheel-apps/assign-readers",
-    "source": "https://github.com/flywheel-apps/assign-readers",
+    "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
+    "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_readers",
     "cite": "",
     "version": "0.0.1-dev-a",
     "custom": {
@@ -48,9 +48,7 @@
             "type": "string"
         },
         "max_cases": {
-            "default": 30,
-            "minimum": 1,
-            "maximum": 600,
+            "optional": true,
             "description": "The maximum number of cases the reader will assess. This value takes precedence over an entry in the csv file.",
             "type": "integer"
         }
