@@ -210,7 +210,12 @@ def create_project(fw_client, project_label, group, user_id, project_info={}):
         role for role in fw_client.get_all_roles() if role.label == "read-write"
     ][0]
     user_permission = {"_id": user_id, "role_ids": [rw_role.id]}
-    new_project.add_permission(user_permission)
+    # If the assigner and reader are the same, accomodate for a user with admin role
+    # that is automatically given permissions to the project
+    if [perm.id for perm in new_project.permissions if perm.id == user_id]:
+        new_project.update_permission(user_id, user_permission)
+    else:
+        new_project.add_permission(user_permission)
 
     created_container = define_created(new_project)
 
