@@ -49,6 +49,32 @@ class NoReaderProjectsError(Exception):
         self.message = message
 
 
+class InvalidLaunchContainerError(Exception):
+    """
+    Exception raised when gear is launched from an invalid container.
+
+    Args:
+        message (str): explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
+class InvalidReaderError(Exception):
+    """
+    Exception raised for referencing an invalid reader of a project.
+
+    Args:
+        message (str): explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
 def set_session_features(session, case_coverage):
     """
     Gets or sets session features removes from source, restore later
@@ -193,6 +219,48 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         # update if csv.max_cases and info.max_cases are different
         if csv_max_cases is not project_max_cases:
             reader_project.update_info(project_info)
+
+
+def check_valid_reader(fw_client, reader_id, group_id):
+    """
+    Checks for the existing reader project for indicated reader_id.
+
+    Args:
+        fw_client (flywheel.Client): Flywheel instance client for api calls.
+        reader_id (str): The email of the reader to validate
+        group_id (str): The id of the reader group
+
+    Raises:
+        InvalidReaderError: If a project is not found assigned to reader, raised to exit
+
+    Returns:
+        boolean: Returns `True` if reader has assigned project
+    """
+
+    group_projects = fw_client.projects.find(f'group="{group_id}"')
+
+    proj_roles = [
+        role.id
+        for role in fw_client.get_all_roles()
+        if role.label in ["read-write", "read-only"]
+    ]
+
+    valid_reader_ids = [
+        [
+            perm.id
+            for perm in proj.permissions
+            if set(perm.role_ids).intersection(proj_roles)
+        ][0]
+        for proj in group_projects
+    ]
+
+    if reader_id in valid_reader_ids:
+        return True
+
+    raise InvalidReaderError(
+        f"The Reader, {reader_id}, has not been instantiated. "
+        "Please run `assign-readers` to create a reader project for this user."
+    )
 
 
 def instantiate_new_readers(fw_client, group, group_readers, readers_df):
@@ -516,6 +584,195 @@ def select_readers_without_replacement(session_features, dest_projects_df):
         )
 
     return assign_reader_projs
+
+
+def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reason):
+
+    src_project = fw_client.get(src_session.parents["project"]).reload()
+
+    # Grab project-level features, if it does not exist, set defaults
+    project_features = src_project.get("project_features")
+
+    # Keep track of all the exported and created data
+    # On Failure, remove contents of created_data from instance.
+    exported_data = []
+    created_data = []
+
+    # Find or create reader group
+    reader_group, _created_data = find_or_create_group(
+        fw_client, reader_group_id, "Readers"
+    )
+    created_data.extend(_created_data)
+
+    # Initialize dataframes used to select sessions and readers without replacement
+    source_sessions_df, dest_projects_df = initialize_dataframes(
+        fw_client, reader_group
+    )
+
+    # find record with reader_id
+    indx = dest_projects_df[dest_projects_df.reader_id == reader_id].index
+    project_id = dest_projects_df.id[indx]
+    reader_proj = fw_client.get(project_id).reload()
+
+    session_features = set_session_features(src_session, 3)
+
+    if reason in ["Breaking a Tie", "Individual Assignment"]:
+        # Check reader availability
+        if dest_projects_df.num_assignments[indx] == dest_projects_df.max_cases[indx]:
+            log.error(
+                "Cannot assign more than %s cases to %s. "
+                "Consider increasing max_cases for this reader "
+                "or choosing another reader.",
+                dest_projects_df.max_cases[indx],
+                reader_id,
+            )
+            raise Exception("Max assignments reached.")
+
+        # check for the existence of the selected session in the reader project
+        if src_session.label in [sess.label for sess in reader_proj.sessions()]:
+            log.error(
+                "Selected session (%s) has already been assigned to reader (%s).",
+                src_session.label,
+                reader_id,
+            )
+            raise Exception("Existing Session in Destination Project.")
+
+        # Increment case_coverage, if necessary
+        if session_features["assigned_count"] == session_features["case_coverage"]:
+            session_features["case_coverage"] += 1
+
+        try:
+            # export the session to the reader project
+            dest_session, _exported_data, _created_data = export_session(
+                fw_client, src_session, fw_client.get(project_id)
+            )
+
+            exported_data.extend(_exported_data)
+            created_data.extend(_created_data)
+
+        except Exception as e:
+            log.warning("Error while exporting a session, %s.", src_session.label)
+            log.exception(e)
+            log.warning("Examine the data and try again.")
+
+        if not dest_projects_df.loc[indx, "assignments"]:
+            dest_projects_df.loc[indx, "assignments"] = [
+                {"source_session": src_session.id, "dest_session": dest_session.id}
+            ]
+        else:
+            dest_projects_df.loc[indx, "assignments"].append(
+                {"source_session": src_session.id, "dest_session": dest_session.id}
+            )
+
+        dest_projects_df.loc[indx, "num_assignments"] += 1
+        session_features["assigned_count"] += 1
+        session_features["assignments"].append(
+            {
+                "project_id": project_id,
+                "reader_id": reader_id,
+                "session_id": dest_session.id,
+                "status": "Assigned",
+            }
+        )
+
+    else:
+        """
+        Here we may want to give the reader a bit more of a description of how this is
+        going to go.
+        """
+        # check for the existence of the selected session in the reader project
+        if src_session.label not in [sess.label for sess in reader_proj.sessions()]:
+            log.error(
+                "Selected session (%s) must be assigned to reader (%s) to update.",
+                src_session.label,
+                reader_id,
+            )
+            raise Exception("Missing Session in Destination Project.")
+
+        # Find reader_assignment
+        assignment = [
+            assignment
+            for assignment in session_features["assignments"]
+            if assignment["reader_id"] == reader_id
+        ][0]
+        # Set status back to "Assigned" and removed any assessment data, if it exists
+        assignment["status"] = "Assigned"
+        if assignment.get("read"):
+            assignment.pop("read")
+        if assignment.get("measurements"):
+            assignment.pop("measurements")
+
+        dest_session = fw_client.get(assignment["session_id"]).reload()
+        # Update ohifViewer object...
+        # TODO: Check with Jody to ensure that this can:
+        #       1. be marked as "unread"
+        #       2. give some indication to the reader that they need to
+        #          correct their assessment
+        dest_ohifViewer = dest_session.info["ohifViewer"]
+        for k, _ in dest_ohifViewer["read"][reader_id]["notes"].items():
+            dest_ohifViewer["read"][reader_id]["notes"].pop(k)
+        dest_ohifViewer["read"][reader_id]["notes"]["additionalNotes"] = reason
+
+        dest_session.update_info({"ohifViewer": dest_ohifViewer})
+
+    # This is where we give the "source" the information about where it went
+    # later, we will want to use this to query "completed sessions" and get
+    # ready for the next phase.
+    session_info = {"session_features": session_features}
+
+    # Restore the session_features to the source session
+    src_session.update_info(session_info)
+    # Iterate through sessions to record system state
+    for tmp_session in src_project.sessions():
+        tmp_session = tmp_session.reload()
+        session_features = tmp_session.info.get("session_features")
+        # always record the state in the dataframe.
+        session_features["id"] = tmp_session.id
+        session_features["label"] = tmp_session.label
+        source_sessions_df = source_sessions_df.append(
+            session_features, ignore_index=True
+        )
+
+        project_session_attributes = set_project_session_attributes(session_features)
+
+        # Check to see if the case is already present in the project_features
+        case = [
+            case
+            for case in project_features["case_states"]
+            if case["id"] == session_features["id"]
+        ]
+        if case:
+            index = project_features["case_states"].index(case[0])
+            project_features["case_states"].pop(index)
+
+        # append new or updated case data to project_features
+        project_features["case_states"].append(project_session_attributes)
+
+    # TODO: There was a proposal to include "reader_states" in here as well.  That
+    #       would put this update_info down below the next loop.
+    #       And it would put some extra elements within the loop as well.
+    src_project.update_info({"project_features": project_features})
+
+    # update reader project from updates to the dataframe
+    project_info = {
+        "project_features": {
+            "assignments": dest_projects_df.loc[indx, "assignments"],
+            "max_cases": dest_projects_df.loc[indx, "max_cases"],
+        }
+    }
+    reader_proj.update_info(project_info)
+
+    """
+     Depending on "reason", we are going to want to assign or reassign a single case. and depending on
+     those actions, there will be some constraints to adhere to 
+
+        
+     2. Likewise, if this is a "reassignment", then the case MUST exist in the reader project.  Enforced with a graceful exit.
+        Also, with this "reassignment", we want to notify the user, somehow, that this case has been reassigned for some reason.  the custom-info.ohifViewer.read object does not do this well.
+
+    """
+
+    return source_sessions_df, dest_projects_df, exported_data_df
 
 
 def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_coverage):

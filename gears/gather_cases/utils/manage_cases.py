@@ -18,6 +18,19 @@ class InvalidGroupError(Exception):
         self.message = message
 
 
+class UninitializedGroupError(Exception):
+    """Exception raised for using a Flywheel group without initialized projects.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
 def gather_case_data_from_readers(fw_client, source_project):
     """
     Gather case assessments from the distributed session assignments
@@ -28,7 +41,7 @@ def gather_case_data_from_readers(fw_client, source_project):
     3) record completion status in metadata and spreadsheet.
 
     Args:
-        fw_client (flywheel.Client): An instantiated Flywheel Client to the host instance
+        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
 
     Returns:

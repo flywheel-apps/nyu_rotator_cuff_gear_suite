@@ -121,7 +121,7 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
     exist in the DataFrame and as a reader project.
 
     Args:
-        group_projects (flywheel.Group): Flywheel Group object
+        group_projects (list): List of Flywheel Projects
         readers_df (pandas.DataFrame): Pandas Dataframe containing columns:
             "email", "first_name", "last_name", and "max_cases"
     """
@@ -163,17 +163,11 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
             )
             else 0
         )
-        # TODO: If the reader/user has discovered and changed the info.max_cases,
-        # then the following will
-        # REVERT info.max_cases to whatever it was OR update --
-        # depending on the conditionals below.
-        # QUESTION: Do we want it this way? ... How else could we work this?
-        # if the csv.max_cases is greater, update
+
         if csv_max_cases > project_max_cases:
             project_info["project_features"]["max_cases"] = csv_max_cases
         # else check the number of assigned sessions... never set max_cases
         # to less than this (* see todo below *)
-        # TODO: Check to see if we can "unassign" incomplete cases
         elif csv_max_cases < project_max_cases:
             project_info["project_features"]["max_cases"] = max(
                 len(reader_project.sessions()), csv_max_cases
@@ -222,7 +216,7 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
 
         if [perm.id for perm in group.permissions if perm.id == new_group_user]:
             log.warning(
-                "User, %s, is an administrator of the Readers group.", 
+                "User, %s, is an administrator of the Readers group.",
                 new_group_user
             )
         else:
@@ -277,13 +271,13 @@ def create_or_update_reader_projects(
             "container", "id", and "new" as described in define_container above.
     """
 
-    # I want a list of group permissions with rw and ro only:\
+    # List of group permissions with rw and ro only:
     # TODO: Group permissions may be changing
     group_readers = [
         perm.id for perm in group.permissions if perm.access in ["rw", "ro"]
     ]
 
-    # I want to generate a list of all projects in this group
+    # Generate list of all projects in this group
     group_projects = fw_client.projects.find(f'group="{group.id}"')
 
     # Keep track of the created containers, in case of "rollback"
@@ -524,7 +518,7 @@ def distribute_cases_to_readers(
     Distribute cases (sessions) from a source project to multiple reader projects.
 
     Reader Projects are prepared in the following manner:
-    1) If readers (users) have permissions listed in the reader_group, existence of a 
+    1) If readers (users) have permissions listed in the reader_group, existence of a
        reader project is checked and created if absent. Each of these readers is
        assigned max_cases as set from the ui.
     2) If a reader_csv is provided (with the required fields), each reader (user)
@@ -544,7 +538,8 @@ def distribute_cases_to_readers(
     new users designated in the reader_group permissions or the reader_csv.
 
     Args:
-        fw_client (flywheel.Client): An instantiated Flywheel Client to the host instance
+        fw_client (flywheel.Client): An instantiated Flywheel Client to the
+            host instance
         src_project_label (str): The label of the source project for all sessions
         reader_group_id (str): The Flywheel container id for the group in question
         case_coverage (int): The default number of readers assigned to each session
@@ -573,7 +568,11 @@ def distribute_cases_to_readers(
     created_data = []
 
     # Find or create reader group
-    reader_group, _created_data = find_or_create_group(fw_client, reader_group_id, "Readers")
+    reader_group, _created_data = find_or_create_group(
+        fw_client,
+        reader_group_id,
+        "Readers"
+    )
     created_data.extend(_created_data)
 
     # Create or update reader projects
@@ -583,7 +582,10 @@ def distribute_cases_to_readers(
     created_data.extend(_created_data)
 
     # Initialize dataframes used to select sessions and readers without replacement
-    source_sessions_df, dest_projects_df = initialize_dataframes(fw_client, reader_group)
+    source_sessions_df, dest_projects_df = initialize_dataframes(
+        fw_client,
+        reader_group
+    )
 
     # for each session in the sessions found
     for src_session in src_sessions:
