@@ -10,10 +10,10 @@
     "cite": "",
     "version": "0.0.1-dev-n",
     "custom": {
-        "docker-image": "flywheel/assign-single-case:0.0.1-dev-n",
+        "docker-image": "flywheel/assign-single-case:0.0.1-dev-a",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-single-case:0.0.1-dev-n"
+            "image": "flywheel/assign-single-case:0.0.1-dev-a"
         }
     },
     "inputs": {
@@ -29,11 +29,13 @@
         },
         "assignment_reason": {
             "description": "The reason for assignment or reassignment (e.g. breaking a tie, minority assignment).",
-            "default": "Breaking a Tie",
+            "default": "Assign to Resolve Tie",
             "type": "string",
             "enum": [
-                "Breaking a Tie",
-                "Correct Minority Assessment"
+                "Assign to Resolve Tie",
+                "Individual Assignment",
+                "Change Tear Classification",
+                "Change Measurement"
             ]
         }
     },

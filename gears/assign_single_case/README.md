@@ -18,14 +18,18 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Usage Notes
 
-The `assign-single-case` gear assigns or modifies the assignment of a single case. A new assignment is constrained by the availability of the specified reader (i.e. the readers number of assignments is less than their maximum number of cases). On execution, the Gear distributes the specified case to a specified reader.
+The `assign-single-case` gear assigns or modifies the assignment of a single case. A new assignment is constrained by the availability of the specified reader (i.e. the readers number of assignments is less than their maximum number of cases). On execution, the gear distributes the specified case to a specified reader.
 
 NOTE: This gear assumes that you are running it from within the "Master Project".  Attempting to execute this gear from within a reader project will fail.
 
 ### Gear Configuration
 
 * **reader_email** (required): The email of the reader to assign the specific case.
-* **assignment_reason** (required): The reason for the new assignment or reassignment (e.g. breaking tie, minority assessment).
+* **assignment_reason** (required): A selected reason for the new assignment or reassignment. (Default *Assign to Resolve Tie*).  
+  * **Assign to Resolve Tie**: Assign this case to the specified reader. Increases **case_coverage**, if require.
+  * **Individual Assignment**: Assign this case to the specified reader. The gear will fail if constrained by **case_coverage**.
+  * **Change Tear Classification**: Removes **Completed** status from case and allows reader to make changes to tear type and measurements.
+  * **Change Measurement**: Removes **Completed** status from case and allows reader to make changes to measurements only.
 
 ### Expected Output
 

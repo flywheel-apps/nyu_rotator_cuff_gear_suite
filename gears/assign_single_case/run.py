@@ -72,9 +72,9 @@ if __name__ == "__main__":
     # TODO: Eliminate for site-testing.
     tst_dir = (
         "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/Data/"
-        + "scatter-cases-0.0.1-dev-h_5ebaec31bfda5102456aa0c7"
+        + "assign-single-case"
     )
-    with gear_toolkit_context.GearToolkitContext() as gear_context:
+    with gear_toolkit_context.GearToolkitContext(tst_dir) as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

@@ -591,7 +591,12 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
     src_project = fw_client.get(src_session.parents["project"]).reload()
 
     # Grab project-level features, if it does not exist, set defaults
-    project_features = src_project.get("project_features")
+    # Grab project-level features, if it does not exist, set defaults
+    project_features = (
+        src_project.info["project_features"]
+        if src_project.info.get("project_features")
+        else {"case_coverage": 3, "case_states": []}
+    )
 
     # Keep track of all the exported and created data
     # On Failure, remove contents of created_data from instance.
@@ -610,13 +615,13 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
     )
 
     # find record with reader_id
-    indx = dest_projects_df[dest_projects_df.reader_id == reader_id].index
+    indx = dest_projects_df[dest_projects_df.reader_id == reader_id].index[0]
     project_id = dest_projects_df.id[indx]
     reader_proj = fw_client.get(project_id).reload()
 
     session_features = set_session_features(src_session, 3)
 
-    if reason in ["Breaking a Tie", "Individual Assignment"]:
+    if reason in ["Assign to Resolve Tie", "Individual Assignment"]:
         # Check reader availability
         if dest_projects_df.num_assignments[indx] == dest_projects_df.max_cases[indx]:
             log.error(
@@ -639,6 +644,17 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
 
         # Increment case_coverage, if necessary
         if session_features["assigned_count"] == session_features["case_coverage"]:
+            if reason == "Individual Assignment":
+                log.error(
+                    "Assigning this case (%s) to reader (%s) exceeds "
+                    "case_coverage (%s) for this case.\n"
+                    'Change case_coverage or use "Assign to Resolve Tie".',
+                    src_session.label,
+                    reader_id,
+                    session_features["case_coverage"],
+                )
+                raise Exception("Assignment exceeds case_coverage.")
+
             session_features["case_coverage"] += 1
 
         try:
@@ -695,6 +711,7 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
             for assignment in session_features["assignments"]
             if assignment["reader_id"] == reader_id
         ][0]
+
         # Set status back to "Assigned" and removed any assessment data, if it exists
         assignment["status"] = "Assigned"
         if assignment.get("read"):
@@ -703,15 +720,18 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
             assignment.pop("measurements")
 
         dest_session = fw_client.get(assignment["session_id"]).reload()
-        # Update ohifViewer object...
-        # TODO: Check with Jody to ensure that this can:
-        #       1. be marked as "unread"
-        #       2. give some indication to the reader that they need to
-        #          correct their assessment
+
         dest_ohifViewer = dest_session.info["ohifViewer"]
         _reader_id = reader_id.replace(".", "_")
-        for k, _ in dest_ohifViewer["read"][_reader_id]["notes"].copy().items():
-            dest_ohifViewer["read"][_reader_id]["notes"].pop(k)
+        if reason == "Change Tear Classification":
+            if dest_ohifViewer.get("read"):
+                dest_ohifViewer["read"][_reader_id]["readOnly"] = False
+        elif reason == "Change Measurement":
+            if dest_ohifViewer.get("read"):
+                dest_ohifViewer["read"][_reader_id]["readOnly"] = True
+            if dest_ohifViewer.get("measurements"):
+                dest_ohifViewer.pop("measurements")
+
         dest_ohifViewer["read"][_reader_id]["notes"]["additionalNotes"] = reason
 
         dest_session.update_info({"ohifViewer": dest_ohifViewer})
@@ -726,7 +746,7 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
     # Iterate through sessions to record system state
     for tmp_session in src_project.sessions():
         tmp_session = tmp_session.reload()
-        session_features = tmp_session.info.get("session_features")
+        session_features = set_session_features(tmp_session, 3)
         # always record the state in the dataframe.
         session_features["id"] = tmp_session.id
         session_features["label"] = tmp_session.label
@@ -740,7 +760,7 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
         case = [
             case
             for case in project_features["case_states"]
-            if case["id"] == session_features["id"]
+            if case and (case["id"] == session_features["id"])
         ]
         if case:
             index = project_features["case_states"].index(case[0])
@@ -748,6 +768,14 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
 
         # append new or updated case data to project_features
         project_features["case_states"].append(project_session_attributes)
+
+        # This is where we give the "source" the information about where it went
+        # later, we will want to use this to query "completed sessions" and get
+        # ready for the next phase.
+        session_info = {"session_features": session_features}
+
+        # Restore the session_features to the source session
+        tmp_session.update_info(session_info)
 
     # TODO: There was a proposal to include "reader_states" in here as well.  That
     #       would put this update_info down below the next loop.
@@ -772,6 +800,8 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
         Also, with this "reassignment", we want to notify the user, somehow, that this case has been reassigned for some reason.  the custom-info.ohifViewer.read object does not do this well.
 
     """
+    # Create a DataFrame from exported_data and then export
+    exported_data_df = pd.DataFrame(data=exported_data)
 
     return source_sessions_df, dest_projects_df, exported_data_df
 
@@ -803,7 +833,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     # Grab project-level features, if it does not exist, set defaults
     project_features = (
         src_project.info["project_features"]
-        if src_project.get("project_features")
+        if src_project.info.get("project_features")
         else {"case_coverage": case_coverage, "case_states": []}
     )
 
