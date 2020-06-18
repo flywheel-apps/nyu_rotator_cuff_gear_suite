@@ -6,7 +6,11 @@ import os
 from gear_toolkit import gear_toolkit_context
 
 from utils.check_jobs import check_for_duplicate_execution
-from utils.manage_cases import InvalidGroupError, gather_case_data_from_readers
+from utils.manage_cases import (
+    InvalidGroupError,
+    UninitializedGroupError,
+    gather_case_data_from_readers,
+)
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +30,13 @@ def main(context):
         if analysis.parents["group"] == reader_group_id:
             raise InvalidGroupError(
                 'This gear cannot be run from within the "Readers" group!'
+            )
+
+        # Check for projects in the reader group
+        group = fw_client.get(reader_group_id).reload()
+        if len(group.projects()) == 0:
+            raise UninitializedGroupError(
+                'The "Readers" group has not been initialized.'
             )
 
         source_sessions_df = gather_case_data_from_readers(fw_client, source_project)
