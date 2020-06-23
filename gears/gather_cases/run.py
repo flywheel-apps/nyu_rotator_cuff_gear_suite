@@ -39,7 +39,9 @@ def main(context):
                 'The "Readers" group has not been initialized.'
             )
 
-        source_sessions_df = gather_case_data_from_readers(fw_client, source_project)
+        source_sessions_df, case_assessment_df = gather_case_data_from_readers(
+            fw_client, source_project
+        )
         source_sessions_df.to_csv(
             str(context.output_dir / "master_project_summary_data.csv")
         )

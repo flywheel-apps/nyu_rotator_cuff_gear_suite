@@ -1,8 +1,65 @@
 import logging
+from ast import literal_eval as leval
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
+import requests
 
 log = logging.getLogger(__name__)
+
+CASE_ASSESSMENT_REC = {
+    "id": None,
+    "subject": None,
+    "session": None,
+    "reader_id": None,
+    "infraspinatusTear": None,
+    "infraspinatusDifficulty": None,
+    "infraspinatusRetraction": None,
+    "infraspinatus_anteroposterior_Length": None,
+    "infraspinatus_anteroposterior_Voxel_Start": None,
+    "infraspinatus_anteroposterior_Voxel_End": None,
+    "infraspinatus_anteroposterior_RAS_Start": None,
+    "infraspinatus_anteroposterior_RAS_End": None,
+    "infraspinatus_anteroposterior_ijk_to_RAS": None,
+    "infraspinatus_mediolateral_Length": None,
+    "infraspinatus_mediolateral_Voxel_Start": None,
+    "infraspinatus_mediolateral_Voxel_End": None,
+    "infraspinatus_mediolateral_RAS_Start": None,
+    "infraspinatus_mediolateral_RAS_End": None,
+    "infraspinatus_mediolateral_ijk_to_RAS": None,
+    "subscapularisTear": None,
+    "subscapularisDifficulty": None,
+    "subscapularisRetraction": None,
+    "subscapularis_mediolateral_Length": None,
+    "subscapularis_mediolateral_Voxel_Start": None,
+    "subscapularis_mediolateral_Voxel_End": None,
+    "subscapularis_mediolateral_RAS_Start": None,
+    "subscapularis_mediolateral_RAS_End": None,
+    "subscapularis_mediolateral_ijk_to_RAS": None,
+    "subscapularis_craniocaudal_Length": None,
+    "subscapularis_craniocaudal_Voxel_Start": None,
+    "subscapularis_craniocaudal_Voxel_End": None,
+    "subscapularis_craniocaudal_RAS_Start": None,
+    "subscapularis_craniocaudal_RAS_End": None,
+    "subscapularis_craniocaudal_ijk_to_RAS": None,
+    "supraspinatusTear": None,
+    "supraspinatusDifficulty": None,
+    "supraspinatusRetraction": None,
+    "supraspinatus_anteroposterior_Length": None,
+    "supraspinatus_anteroposterior_Voxel_Start": None,
+    "supraspinatus_anteroposterior_Voxel_End": None,
+    "supraspinatus_anteroposterior_RAS_Start": None,
+    "supraspinatus_anteroposterior_RAS_End": None,
+    "supraspinatus_anteroposterior_ijk_to_RAS": None,
+    "supraspinatus_mediolateral_Length": None,
+    "supraspinatus_mediolateral_Voxel_Start": None,
+    "supraspinatus_mediolateral_Voxel_End": None,
+    "supraspinatus_mediolateral_RAS_Start": None,
+    "supraspinatus_mediolateral_RAS_End": None,
+    "supraspinatus_mediolateral_ijk_to_RAS": None,
+    "additionalNotes": None,
+}
 
 
 class InvalidGroupError(Exception):
@@ -31,13 +88,279 @@ class UninitializedGroupError(Exception):
         self.message = message
 
 
+def io_proxy_wado(
+    api_key, api_key_prefix, project_id, study=None, series=None, instance=None
+):
+    base_url = Path(api_key.split(":")[0])
+    base_url /= "io-proxy/wado"
+    base_url /= "projects/" + project_id
+    if study:
+        base_url /= "studies/" + study
+    if series:
+        base_url /= "series/" + series
+        base_url /= "instances"
+    if instance:
+        base_url /= instance
+        base_url /= "tags"
+    base_url = "https://" + str(base_url)
+
+    headers = {
+        "Authorization": api_key_prefix + " " + api_key,
+        "accept": "application/json",
+    }
+
+    req = requests.get(base_url, headers=headers)
+
+    return leval(req.text)
+
+
+def io_proxy_acquire_coords(fw_client, project_id, Length):
+    host = fw_client._fw.api_client.configuration.host[:-8]
+    api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix
+    api_key_hash = fw_client._fw.api_client.configuration.api_key
+    api_key = ":".join([host.split("//")[1], api_key_hash])
+
+    voxel_start = np.ones((4, 1))
+    voxel_end = np.ones((4, 1))
+    ras_start = np.zeros((4, 1))
+    ras_end = np.zeros((4, 1))
+    ijk_RAS_matrix = np.zeros((4, 4))
+
+    ijk_RAS_matrix[3, 3] = 1.0
+
+    study, series, instance = Length["imagePath"].split("$$$")[:3]
+
+    instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
+
+    # find first instance:
+    first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
+    # (0020, 0032) Image Position (Patient)
+    ImagePosition = first_inst["00200032"]["Value"]
+    # (0020, 0037) Image Orientation (Patient)
+    ImageOrientation = first_inst["00200037"]["Value"]
+    # (0028, 0030) Pixel Spacing
+    PixelSpacing = first_inst["00280030"]["Value"]
+
+    slice_instance = io_proxy_wado(
+        api_key, api_key_prefix, project_id, study, series, instance
+    )
+
+    # (0018, 0088) Spacing Between Slices
+    SpacingBetweenSlices = slice_instance["00180088"]["Value"][0]
+    # 0020, 0013) Instance Number
+    InstanceNumber = slice_instance["00200013"]["Value"][0]
+
+    voxel_start[:3] = [
+        Length["handles"]["start"]["x"],
+        Length["handles"]["start"]["y"],
+        InstanceNumber,
+    ]
+    voxel_end[:3] = [
+        Length["handles"]["end"]["x"],
+        Length["handles"]["end"]["y"],
+        InstanceNumber,
+    ]
+
+    ijk_RAS_matrix[:3, 0] = ImageOrientation[:3]
+    ijk_RAS_matrix[:2, 0] = -1 * ijk_RAS_matrix[:2, 0]
+    ijk_RAS_matrix[:3, 1] = ImageOrientation[3:]
+    ijk_RAS_matrix[:2, 1] = -1 * ijk_RAS_matrix[:2, 1]
+    ijk_RAS_matrix[:3, 2] = np.cross(ijk_RAS_matrix[:3, 0], ijk_RAS_matrix[:3, 1])
+    ijk_RAS_matrix[:3, 3] = ImagePosition
+    ijk_RAS_matrix[:3, 2] = -1 * ijk_RAS_matrix[:3, 2]
+
+    spacing = np.diag([PixelSpacing[0], PixelSpacing[1], SpacingBetweenSlices, 1])
+
+    ijk_RAS_matrix = np.matmul(ijk_RAS_matrix, spacing)
+
+    ras_start = np.matmul(ijk_RAS_matrix, voxel_start)
+    ras_end = np.matmul(ijk_RAS_matrix, voxel_end)
+
+    return voxel_start, voxel_end, ras_start, ras_end, ijk_RAS_matrix
+
+
+def fill_session_attributes(fw_client, project_features, session):
+    # Each session has a set of features: case_coverage and assignments
+    # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
+    #    *measurement:{}*, *read: {}*} **if performed, "gathered"
+    # if not found, create with defaults
+
+    # Grab session features from each session, if present.
+    # If not yet present (session has been added before scattering), prep the
+    # session features dictionary for later use.
+    session_features = (
+        session.info["session_features"]
+        if session.info.get("session_features")
+        else {
+            "case_coverage": project_features["case_coverage"],
+            "assignments": [],
+            "assigned_count": 0,
+        }
+    )
+
+    session_attributes = {
+        "id": session.id,
+        "label": session.label,
+        "case_coverage": session_features["case_coverage"],
+        "unassigned": session_features["case_coverage"]
+        - len(session_features["assignments"]),
+        "assigned": len(session_features["assignments"]),
+        "classified": 0,
+        "measured": 0,
+        "completed": 0,
+    }
+
+    for assignment in session_features["assignments"]:
+        assigned_session = fw_client.get(assignment["session_id"])
+        assigned_session = assigned_session.reload()
+        assigned_session_info = assigned_session.info
+
+        user_data = []
+        ohif_viewer = assigned_session_info.get("ohifViewer")
+        if ohif_viewer:
+            if ohif_viewer.get("read"):
+                assignment["read"] = ohif_viewer["read"]
+                assignment["status"] = "Classified"
+                session_attributes["classified"] += 1
+                reader_id = assignment["reader_id"]
+                user_data = ohif_viewer["read"][reader_id]["notes"]
+
+            if ohif_viewer.get("measurements"):
+                assignment["measurements"] = ohif_viewer["measurements"]
+                assignment["status"] = "Measured"
+                session_attributes["measured"] += 1
+
+            # Completion status depends on each tendon being
+            # 1. Classifed as noTear, lowGradePartialTear, highGradePartialTear w/o
+            #    measurements
+            # 2. Classified as fullTear having 2 measurements for the indicated tendon
+            if not user_data:
+                Complete = False
+            else:
+                Complete = True
+                for tendon in ["infraspinatus", "subscapularis", "supraspinatus"]:
+                    if user_data[tendon + "Tear"] in [
+                        "none",
+                        "lowPartial",
+                        "highPartial",
+                    ]:
+                        Complete &= True
+                    elif user_data[tendon + "Tear"] == "full":
+                        if not (
+                            user_data.get(tendon + "Retraction")
+                            and user_data[tendon + "Retraction"]
+                            in ["minimal", "humeral", "glenoid"]
+                        ):
+                            Complete &= False
+
+                        if ohif_viewer.get("measurements") and ohif_viewer[
+                            "measurements"
+                        ].get("Length"):
+                            Lengths = ohif_viewer["measurements"].get("Length")
+                            tendon_measures = [
+                                tendon_meas
+                                for tendon_meas in Lengths
+                                if tendon in tendon_meas["location"].lower()
+                            ]
+                            if len(tendon_measures) != 2:
+                                Complete &= False
+                        else:
+                            Complete &= False
+                    else:
+                        Complete &= False
+
+            if Complete:
+                assignment["status"] = "Completed"
+                session_attributes["completed"] += 1
+                ohif_viewer["read"][reader_id]["readOnly"] = True
+                assigned_session.update_info({"ohifViewer": ohif_viewer})
+
+    session.update_info({"session_features": session_features})
+    # additional data to put into the project_features["case_states"]
+    session_features["id"] = session.id
+    session_features["label"] = session.label
+    # If the case is already present in the project_features, replace
+    case = [
+        case
+        for case in project_features["case_states"]
+        if case["id"] == session_features["id"]
+    ]
+    if case:
+        index = project_features["case_states"].index(case[0])
+        project_features["case_states"].pop(index)
+
+    project_features["case_states"].append(session_attributes)
+
+    return session_attributes
+
+
+def fill_reader_case_data(fw_client, project_features, session):
+    # Each session has a set of features: case_coverage and assignments
+    # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
+    #    *measurement:{}*, *read: {}*} **if performed, "gathered"
+    # if not found, create with defaults
+
+    # Grab session features from each session, if present.
+    # If not yet present (session has been added before scattering), prep the
+    # session features dictionary for later use.
+    session_features = (
+        session.info["session_features"]
+        if session.info.get("session_features")
+        else {
+            "case_coverage": project_features["case_coverage"],
+            "assignments": [],
+            "assigned_count": 0,
+        }
+    )
+    case_assignments = []
+    for assignment in session_features["assignments"]:
+        assigned_session = fw_client.get(assignment["session_id"]).reload()
+        assigned_session_info = assigned_session.info
+
+        case_assignment_status = {}
+        case_assignment_status["id"] = session.id
+        case_assignment_status["subject"] = session.subject.label
+        case_assignment_status["session"] = session.label
+        case_assignment_status["reader_id"] = assignment["reader_id"]
+        if assigned_session_info.get("ohifViewer"):
+            if assigned_session_info["ohifViewer"].get("read"):
+                user = assignment["reader_id"]
+                user_data = assigned_session_info["ohifViewer"]["read"][user]["notes"]
+                case_assignment_status.update(user_data)
+            if assigned_session_info["ohifViewer"].get("measurements"):
+                if assigned_session_info["ohifViewer"]["measurements"].get("Length"):
+                    for Length in assigned_session_info["ohifViewer"]["measurements"][
+                        "Length"
+                    ]:
+                        prefix = Length["location"].lower().replace(" - ", "_")
+                        case_assignment_status[prefix + "_Length"] = Length["length"]
+                        (
+                            voxel_start,
+                            voxel_end,
+                            ras_start,
+                            ras_end,
+                            ijk_RAS_matrix,
+                        ) = io_proxy_acquire_coords(
+                            fw_client, assignment["project_id"], Length
+                        )
+                        case_assignment_status[prefix + "_Voxel_Start"] = voxel_start
+                        case_assignment_status[prefix + "_Voxel_End"] = voxel_end
+                        case_assignment_status[prefix + "_RAS_Start"] = ras_start
+                        case_assignment_status[prefix + "_RAS_End"] = ras_end
+                        case_assignment_status[prefix + "_ijk_to_RAS"] = ijk_RAS_matrix
+
+        case_assignments.append(case_assignment_status)
+
+    return case_assignments
+
+
 def gather_case_data_from_readers(fw_client, source_project):
     """
     Gather case assessments from the distributed session assignments
 
     For each session in the master project
     1) Check for assignment status
-    2) if assigned, check for completion status (diagnosed, measured)
+    2) if assigned, check for completion status (classified, measured)
     3) record completion status in metadata and spreadsheet.
 
     Args:
@@ -45,8 +368,8 @@ def gather_case_data_from_readers(fw_client, source_project):
         source_project (flywheel.Project): The source project for all sessions
 
     Returns:
-        pandas.DataFrame: Pandas DataFrame reporting on the state of each session in
-            the project
+        tuple: a pair of pandas.DataFrame reporting on the state of each session in
+            the project and the assessment status from each reader
     """
 
     source_project = source_project.reload()
@@ -67,108 +390,32 @@ def gather_case_data_from_readers(fw_client, source_project):
             "case_coverage",
             "unassigned",
             "assigned",
-            "diagnosed",
+            "classified",
             "measured",
             "completed",
         ]
     )
+
+    # Create a DataFrame to record the state of each assessment by a reader
+    case_assessment_df = pd.DataFrame(columns=CASE_ASSESSMENT_REC.keys())
 
     # for each session found
     for session in src_sessions:
         log.info("Gathering completion data for session %s", session.label)
         # Reload to capture all metadata
         session = session.reload()
-
-        # Each session has a set of features: case_coverage and assignments
-        # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
-        #    *measurement:{}*, *read: {}*} **if performed, "gathered"
-        # if not found, create with defaults
-
-        # Grab session features from each session, if present.
-        # If not yet present (session has been added before scattering), prep the
-        # session features dictionary for later use.
-        session_features = (
-            session.info["session_features"]
-            if session.info.get("session_features")
-            else {
-                "case_coverage": project_features["case_coverage"],
-                "assignments": [],
-                "assigned_count": 0,
-            }
+        session_attributes = fill_session_attributes(
+            fw_client, project_features, session
         )
-        session_attributes = {
-            "id": session.id,
-            "label": session.label,
-            "case_coverage": session_features["case_coverage"],
-            "unassigned": session_features["case_coverage"]
-            - len(session_features["assignments"]),
-            "assigned": len(session_features["assignments"]),
-            "diagnosed": 0,
-            "measured": 0,
-            "completed": 0,
-        }
-
-        for assignment in session_features["assignments"]:
-            assigned_session = fw_client.get(assignment["session_id"])
-            assigned_session = assigned_session.reload()
-            assigned_session_info = assigned_session.info
-
-            # used to asses No, PartialLow, PartialHigh, Full tear for each
-            tear_test = []
-            if assigned_session_info.get("ohifViewer"):
-                if assigned_session_info["ohifViewer"].get("read"):
-                    assignment["read"] = assigned_session_info["ohifViewer"]["read"]
-                    assignment["status"] = "Diagnosed"
-                    session_attributes["diagnosed"] += 1
-                    user = list(assigned_session_info["ohifViewer"]["read"].keys())[0]
-                    user_data = assigned_session_info["ohifViewer"]["read"][user][
-                        "notes"
-                    ]
-                    tear_test = [
-                        user_data["infraspinatusTear"],
-                        user_data["subscapularisTear"],
-                        user_data["supraspinatusTear"],
-                    ]
-
-                if assigned_session_info["ohifViewer"].get("measurements"):
-                    assignment["measurements"] = assigned_session_info["ohifViewer"][
-                        "measurements"
-                    ]
-                    assignment["status"] = "Measured"
-                    session_attributes["measured"] += 1
-                # mark as complete if tear-status is recorded and if it is a full-tear
-                # and measured
-                if (
-                    assigned_session_info["ohifViewer"].get("read")
-                    and "full" not in tear_test
-                ) or (
-                    assigned_session_info["ohifViewer"].get("read")
-                    and "full" in tear_test
-                    and assigned_session_info["ohifViewer"].get("measurements")
-                ):
-                    assignment["status"] = "Completed"
-                    session_attributes["completed"] += 1
-
-        session.update_info({"session_features": session_features})
-        # additional data to put into the project_features["case_states"]
-        session_features["id"] = session.id
-        session_features["label"] = session.label
-        # If the case is already present in the project_features, replace
-        case = [
-            case
-            for case in project_features["case_states"]
-            if case["id"] == session_features["id"]
-        ]
-        if case:
-            index = project_features["case_states"].index(case[0])
-            project_features["case_states"].pop(index)
-
-        project_features["case_states"].append(session_attributes)
-
         source_sessions_df = source_sessions_df.append(
             session_attributes, ignore_index=True
         )
 
+        case_assignments = fill_reader_case_data(fw_client, project_features, session)
+        case_assessment_df = case_assessment_df.append(
+            case_assignments, ignore_index=True
+        )
+
     source_project.update_info({"project_features": project_features})
 
-    return source_sessions_df
+    return source_sessions_df, case_assessment_df

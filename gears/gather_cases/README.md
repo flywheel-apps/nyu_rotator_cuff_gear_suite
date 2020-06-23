@@ -1,11 +1,11 @@
 # gather-cases
 
-The `gather-cases` gear collects all assessed case data from the reader projects. Data from assessed cases is collated into the origin case of a "Master Project",  into a "Master Project" itself, and reported on in tabular output described below.
+The `gather-cases` gear collects all assigned case status data from the reader projects. Data from assessed cases is collated into the origin case of a "Master Project",  into a "Master Project" itself, and reported on in tabular output described below.
 
-Each case is considered "completed" by a reader if
+Each case is considered "completed" by a reader if for each tendon
 
 1. It is specified as "No tear", "Low grade partial thickness tear", or "High grade partial thickness tear" and has no measurements
-2. It is specified as a "Full thickness tear" and has appropriately labeled measurements.
+2. It is specified as a "Full thickness tear" and has two appropriately labeled measurements.
 
 ## Prerequisite
 
@@ -19,7 +19,7 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 The `gather-cases` gear is executed without inputs and configuration parameters.
 
-NOTE: This gear assumes that you are running it from within the "Master Project".  Attempting to execute this gear from within a reader project will fail.
+NOTE: This gear assumes that you are running it from within a "Master Project".  Attempting to execute this gear from within a reader project will fail.
 
 ### Expected Output
 

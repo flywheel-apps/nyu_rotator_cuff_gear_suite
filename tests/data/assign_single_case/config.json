@@ -1,0 +1,11 @@
+{
+    "config": {
+        "reader_email": "joshuajacobs@flywheel.io",
+        "assignment_reason": "Change Measurement"
+    },
+    "inputs": {},
+    "destination": {
+        "type": "analysis",
+        "id": "5e5975430cc73f4694c82208"
+    }
+}

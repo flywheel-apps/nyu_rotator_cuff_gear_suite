@@ -21,10 +21,6 @@
                 "modality": null,
                 "size": 153
             }
-        },
-        "api-key": {
-            "base": "api-key",
-            "key": "nyu.dev.flywheel.io:OWRa4hkkkMAkp7EEws"
         }
     },
     "destination": {
