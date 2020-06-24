@@ -46,7 +46,7 @@ def define_reader_csv(context):
     """
     readers_df = []
     # regex for checking validity of readers email
-    regex = r"^[a-zA-Z0-9]+[\._]?[a-zA-Z0-9]+[@]\w+[.]\w{2,3}$"
+    regex = r"^[a-zA-Z0-9.]+[\._]?[a-zA-Z0-9.]+[@]\w+[.]\w{2,3}$"
     # Ensure valid inputs and act consistently
     reader_csv_path = context.get_input_path("reader_csv")
     if reader_csv_path:

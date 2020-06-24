@@ -1,4 +1,3 @@
-
 import logging
 import os
 
@@ -216,8 +215,7 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
 
         if [perm.id for perm in group.permissions if perm.id == new_group_user]:
             log.warning(
-                "User, %s, is an administrator of the Readers group.",
-                new_group_user
+                "User, %s, is an administrator of the Readers group.", new_group_user
             )
         else:
             group.add_permission(user_permission)
@@ -238,7 +236,7 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
 
 
 def create_or_update_reader_projects(
-    fw_client, group, master_project, max_cases, readers_csv=None
+    fw_client, group, master_project, max_cases=30, readers_csv=None
 ):
     """
     Updates the number and attributes of reader projects to reflect constraints
@@ -373,10 +371,7 @@ def create_or_update_reader_projects(
         reader_number = len(group.projects()) + 1
         project_label = "Reader " + str(reader_number)
         project_info = {
-            "project_features": {
-                "assignments": [],
-                "max_cases": _max_cases
-            }
+            "project_features": {"assignments": [], "max_cases": _max_cases}
         }
 
         new_project, created_container = create_project(
@@ -569,9 +564,7 @@ def distribute_cases_to_readers(
 
     # Find or create reader group
     reader_group, _created_data = find_or_create_group(
-        fw_client,
-        reader_group_id,
-        "Readers"
+        fw_client, reader_group_id, "Readers"
     )
     created_data.extend(_created_data)
 
@@ -583,8 +576,7 @@ def distribute_cases_to_readers(
 
     # Initialize dataframes used to select sessions and readers without replacement
     source_sessions_df, dest_projects_df = initialize_dataframes(
-        fw_client,
-        reader_group
+        fw_client, reader_group
     )
 
     # for each session in the sessions found

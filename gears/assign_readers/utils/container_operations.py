@@ -176,6 +176,18 @@ def find_or_create_group(fw_client, group_id, group_label):
 
     group = fw_client.groups.find_first(f'_id="{group_id}"')
 
+    # admin_role = [role for role in fw_client.get_all_roles() if role.label == "admin"][
+    #     0
+    # ]
+
+    # site_admins = [user for user in fw_client.users() if "site_admin" in user.roles]
+    # for admin in site_admins:
+    #     if not [perm.id for perm in group.permissions_template if perm.id == admin.id]:
+    #         role_assignment = flywheel.RolesRoleAssignment(admin.id, [admin_role.id])
+    #         group.permissions_template.append(role_assignment)
+    #     if not [perm.id for perm in group.permissions if perm.id == admin.id]:
+    #         group.add_permission({"_id": admin.id, "access": "admin"})
+
     created_container = define_created(group)
 
     return group.reload(), [created_container]
@@ -296,7 +308,7 @@ def export_or_find_subject(fw_client, source_subject, dest_project):
     return dest_subject, subj_export, created_container
 
 
-def export_session(fw_client, source_session, dest_project):
+def export_session(fw_client, source_session, dest_project, export_info=False):
     """
     Export a session (source_session) to project (dest_project).
 
@@ -343,9 +355,10 @@ def export_session(fw_client, source_session, dest_project):
 
         session_metadata = {}
         for key in SESSION_KEYS:
-            value = source_session.get(key)
-            if value:
-                session_metadata[key] = value
+            if not (key == "info" and export_info is False):
+                value = source_session.get(key)
+                if value:
+                    session_metadata[key] = value
 
         # Add session to the subject
         dest_session = dest_subject.add_session(session_metadata)

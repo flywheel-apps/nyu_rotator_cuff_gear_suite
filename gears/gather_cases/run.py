@@ -42,10 +42,14 @@ def main(context):
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
             fw_client, source_project
         )
+
         source_sessions_df.to_csv(
-            str(context.output_dir / "master_project_summary_data.csv")
+            str(context.output_dir / "master_project_summary_data.csv"), index=False
         )
 
+        case_assessment_df.to_csv(
+            str(context.output_dir / "case_assignment_status_export.csv"), index=False
+        )
         if source_sessions_df.assigned.sum() == 0:
             log.warning(
                 "There are no cases assigned to readers. "
@@ -63,7 +67,8 @@ def main(context):
 
 
 if __name__ == "__main__":
-    with gear_toolkit_context.GearToolkitContext() as gear_context:
+    tst = "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/Data/gather-cases-0.0.1-dev-e_5ed03221dd4e560535c2ce65"
+    with gear_toolkit_context.GearToolkitContext(tst) as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

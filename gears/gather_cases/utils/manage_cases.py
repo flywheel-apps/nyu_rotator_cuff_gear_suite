@@ -13,6 +13,7 @@ CASE_ASSESSMENT_REC = {
     "subject": None,
     "session": None,
     "reader_id": None,
+    "completed": False,
     "infraspinatusTear": None,
     "infraspinatusDifficulty": None,
     "infraspinatusRetraction": None,
@@ -91,6 +92,20 @@ class UninitializedGroupError(Exception):
 def io_proxy_wado(
     api_key, api_key_prefix, project_id, study=None, series=None, instance=None
 ):
+    """
+    io_proxy_wado [summary]
+
+    Args:
+        api_key ([type]): [description]
+        api_key_prefix ([type]): [description]
+        project_id ([type]): [description]
+        study ([type], optional): [description]. Defaults to None.
+        series ([type], optional): [description]. Defaults to None.
+        instance ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        dict: [description]
+    """
     base_url = Path(api_key.split(":")[0])
     base_url /= "io-proxy/wado"
     base_url /= "projects/" + project_id
@@ -115,9 +130,22 @@ def io_proxy_wado(
 
 
 def io_proxy_acquire_coords(fw_client, project_id, Length):
+    """
+    Acquires coordinates and conversion matrix from dicom tags in io-proxy
+
+    Args:
+        fw_client (flywheel.Client): The active flywheel client
+        project_id ([type]): [description]
+        Length ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     host = fw_client._fw.api_client.configuration.host[:-8]
-    api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix
-    api_key_hash = fw_client._fw.api_client.configuration.api_key
+    api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix[
+        "Authorization"
+    ]
+    api_key_hash = fw_client._fw.api_client.configuration.api_key["Authorization"]
     api_key = ":".join([host.split("//")[1], api_key_hash])
 
     voxel_start = np.ones((4, 1))
@@ -150,16 +178,16 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     # 0020, 0013) Instance Number
     InstanceNumber = slice_instance["00200013"]["Value"][0]
 
-    voxel_start[:3] = [
-        Length["handles"]["start"]["x"],
-        Length["handles"]["start"]["y"],
-        InstanceNumber,
-    ]
-    voxel_end[:3] = [
-        Length["handles"]["end"]["x"],
-        Length["handles"]["end"]["y"],
-        InstanceNumber,
-    ]
+    voxel_start[:3] = np.array(
+        [
+            Length["handles"]["start"]["x"],
+            Length["handles"]["start"]["y"],
+            InstanceNumber,
+        ]
+    ).reshape((3, 1))
+    voxel_end[:3] = np.array(
+        [Length["handles"]["end"]["x"], Length["handles"]["end"]["y"], InstanceNumber]
+    ).reshape((3, 1))
 
     ijk_RAS_matrix[:3, 0] = ImageOrientation[:3]
     ijk_RAS_matrix[:2, 0] = -1 * ijk_RAS_matrix[:2, 0]
@@ -167,7 +195,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     ijk_RAS_matrix[:2, 1] = -1 * ijk_RAS_matrix[:2, 1]
     ijk_RAS_matrix[:3, 2] = np.cross(ijk_RAS_matrix[:3, 0], ijk_RAS_matrix[:3, 1])
     ijk_RAS_matrix[:3, 3] = ImagePosition
-    ijk_RAS_matrix[:3, 2] = -1 * ijk_RAS_matrix[:3, 2]
+    ijk_RAS_matrix[:2, 3] = -1 * ijk_RAS_matrix[:2, 3]
 
     spacing = np.diag([PixelSpacing[0], PixelSpacing[1], SpacingBetweenSlices, 1])
 
@@ -176,10 +204,77 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     ras_start = np.matmul(ijk_RAS_matrix, voxel_start)
     ras_end = np.matmul(ijk_RAS_matrix, voxel_end)
 
-    return voxel_start, voxel_end, ras_start, ras_end, ijk_RAS_matrix
+    return (
+        voxel_start.reshape((4,))[:3],
+        voxel_end.reshape((4,))[:3],
+        ras_start.reshape((4,))[:3],
+        ras_end.reshape((4,))[:3],
+        ijk_RAS_matrix.tolist(),
+    )
+
+
+def assess_completed_status(ohif_viewer, user_data):
+    """
+    assess_completed_status [summary]
+
+    Args:
+        ohif_viewer ([type]): [description]
+        user_data ([type]): [description]
+
+    Returns:
+        boolean: [description]
+    """
+    if not user_data:
+        completed_status = False
+    else:
+        completed_status = True
+        for tendon in ["infraspinatus", "subscapularis", "supraspinatus"]:
+            if user_data[tendon + "Tear"] in [
+                "none",
+                "lowPartial",
+                "highPartial",
+            ]:
+                completed_status &= True
+            elif user_data[tendon + "Tear"] == "full":
+                if not (
+                    user_data.get(tendon + "Retraction")
+                    and user_data[tendon + "Retraction"]
+                    in ["minimal", "humeral", "glenoid"]
+                ):
+                    completed_status &= False
+
+                if ohif_viewer.get("measurements") and ohif_viewer["measurements"].get(
+                    "Length"
+                ):
+                    Lengths = ohif_viewer["measurements"].get("Length")
+                    tendon_measures = [
+                        tendon_meas
+                        for tendon_meas in Lengths
+                        if tendon in tendon_meas["location"].lower()
+                    ]
+                    if len(tendon_measures) != 2:
+                        completed_status &= False
+                else:
+                    completed_status &= False
+            else:
+                completed_status &= False
+    return completed_status
 
 
 def fill_session_attributes(fw_client, project_features, session):
+    """
+    Acquire data from a case to populate the output summary
+
+    Args:
+        fw_client (flywheel.Client): The active flywheel client
+        project_features (dict): A dictionary representing features of the 
+            source project
+        session (flywheel.Session): The flywheel session object being queried for 
+            completion status 
+
+    Returns:
+        dict: Session attributes to populate an output dataframe
+    """
     # Each session has a set of features: case_coverage and assignments
     # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
     #    *measurement:{}*, *read: {}*} **if performed, "gathered"
@@ -222,7 +317,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 assignment["read"] = ohif_viewer["read"]
                 assignment["status"] = "Classified"
                 session_attributes["classified"] += 1
-                reader_id = assignment["reader_id"]
+                reader_id = assignment["reader_id"].replace(".", "_")
                 user_data = ohif_viewer["read"][reader_id]["notes"]
 
             if ohif_viewer.get("measurements"):
@@ -234,42 +329,9 @@ def fill_session_attributes(fw_client, project_features, session):
             # 1. Classifed as noTear, lowGradePartialTear, highGradePartialTear w/o
             #    measurements
             # 2. Classified as fullTear having 2 measurements for the indicated tendon
-            if not user_data:
-                Complete = False
-            else:
-                Complete = True
-                for tendon in ["infraspinatus", "subscapularis", "supraspinatus"]:
-                    if user_data[tendon + "Tear"] in [
-                        "none",
-                        "lowPartial",
-                        "highPartial",
-                    ]:
-                        Complete &= True
-                    elif user_data[tendon + "Tear"] == "full":
-                        if not (
-                            user_data.get(tendon + "Retraction")
-                            and user_data[tendon + "Retraction"]
-                            in ["minimal", "humeral", "glenoid"]
-                        ):
-                            Complete &= False
+            completed_status = assess_completed_status(ohif_viewer, user_data)
 
-                        if ohif_viewer.get("measurements") and ohif_viewer[
-                            "measurements"
-                        ].get("Length"):
-                            Lengths = ohif_viewer["measurements"].get("Length")
-                            tendon_measures = [
-                                tendon_meas
-                                for tendon_meas in Lengths
-                                if tendon in tendon_meas["location"].lower()
-                            ]
-                            if len(tendon_measures) != 2:
-                                Complete &= False
-                        else:
-                            Complete &= False
-                    else:
-                        Complete &= False
-
-            if Complete:
+            if completed_status:
                 assignment["status"] = "Completed"
                 session_attributes["completed"] += 1
                 ohif_viewer["read"][reader_id]["readOnly"] = True
@@ -295,6 +357,17 @@ def fill_session_attributes(fw_client, project_features, session):
 
 
 def fill_reader_case_data(fw_client, project_features, session):
+    """
+    fill_reader_case_data [summary]
+
+    Args:
+        fw_client ([type]): [description]
+        project_features ([type]): [description]
+        session ([type]): [description]
+
+    Returns:
+        list: [description]
+    """
     # Each session has a set of features: case_coverage and assignments
     # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
     #    *measurement:{}*, *read: {}*} **if performed, "gathered"
@@ -317,21 +390,25 @@ def fill_reader_case_data(fw_client, project_features, session):
         assigned_session = fw_client.get(assignment["session_id"]).reload()
         assigned_session_info = assigned_session.info
 
-        case_assignment_status = {}
+        case_assignment_status = CASE_ASSESSMENT_REC.copy()
         case_assignment_status["id"] = session.id
         case_assignment_status["subject"] = session.subject.label
         case_assignment_status["session"] = session.label
         case_assignment_status["reader_id"] = assignment["reader_id"]
-        if assigned_session_info.get("ohifViewer"):
-            if assigned_session_info["ohifViewer"].get("read"):
-                user = assignment["reader_id"]
-                user_data = assigned_session_info["ohifViewer"]["read"][user]["notes"]
+        ohif_viewer = assigned_session_info.get("ohifViewer")
+        user_data = []
+        if ohif_viewer:
+            if ohif_viewer.get("read"):
+                reader_id = assignment["reader_id"].replace(".", "_")
+                user_data = ohif_viewer["read"][reader_id]["notes"]
                 case_assignment_status.update(user_data)
-            if assigned_session_info["ohifViewer"].get("measurements"):
-                if assigned_session_info["ohifViewer"]["measurements"].get("Length"):
-                    for Length in assigned_session_info["ohifViewer"]["measurements"][
-                        "Length"
-                    ]:
+
+            completed_status = assess_completed_status(ohif_viewer, user_data)
+            case_assignment_status.update({"completed": completed_status})
+
+            if ohif_viewer.get("measurements"):
+                if ohif_viewer["measurements"].get("Length"):
+                    for Length in ohif_viewer["measurements"]["Length"]:
                         prefix = Length["location"].lower().replace(" - ", "_")
                         case_assignment_status[prefix + "_Length"] = Length["length"]
                         (
