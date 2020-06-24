@@ -193,10 +193,40 @@ def find_or_create_group(fw_client, group_id, group_label):
     return group.reload(), [created_container]
 
 
+def apply_group_template_to_project(fw_client, project, group):
+    """
+    Apply a group's permission template to a given project
+
+    Args:
+        project (flywheel.Project): A flywheel project to apply a template
+        group (flywheel.Group): A flywheel group with a permissions template
+    """
+    permissions = group.permissions_template
+    all_users = [x.id for x in fw_client.get_all_users()]
+    users = [x.id for x in project.permissions]
+    for permission in permissions:
+        if not isinstance(
+            permission, flywheel.models.roles_role_assignment.RolesRoleAssignment
+        ):
+            permission = flywheel.RolesRoleAssignment(
+                permission["id"], permission["role_ids"]
+            )
+        if (permission.id not in users) and (permission.id in all_users):
+            log.info(" Adding {} to {}".format(permission.id, project.label))
+            project.add_permission(permission)
+        else:
+            log.warning(
+                " {} will not be added to {}. The user is either already "
+                "in the project or not a valid user.".format(
+                    permission.id, project.label
+                )
+            )
+
+
 def create_project(fw_client, project_label, group, user_id, project_info={}):
 
     """
-    Create a new reader project under group with user_id as only user.
+    Create a new reader project under group with user_id as only rw-user.
 
     Reader project will have a maximum number of sessions defined by max_assignments.
 
@@ -214,6 +244,7 @@ def create_project(fw_client, project_label, group, user_id, project_info={}):
     """
 
     new_project = group.add_project({"label": project_label})
+    apply_group_template_to_project(fw_client, new_project, group)
 
     new_project.update_info(project_info)
 

@@ -93,18 +93,18 @@ def io_proxy_wado(
     api_key, api_key_prefix, project_id, study=None, series=None, instance=None
 ):
     """
-    io_proxy_wado [summary]
+    Request wrapper for io-proxy api (https://{instance}/io-proxy/docs#/) 
 
     Args:
-        api_key ([type]): [description]
-        api_key_prefix ([type]): [description]
-        project_id ([type]): [description]
-        study ([type], optional): [description]. Defaults to None.
-        series ([type], optional): [description]. Defaults to None.
-        instance ([type], optional): [description]. Defaults to None.
+        api_key (str): Full instance api-key
+        api_key_prefix (str): Type of user (e.g. 'scitran-user')
+        project_id (str): Project ID to inquire
+        study (str, optional): DICOM StudyUID. Defaults to None.
+        series (str, optional): DICOM SeriesUID. Defaults to None.
+        instance (str, optional): DICOM InstanceUID. Defaults to None.
 
     Returns:
-        dict: [description]
+        dict/list: A dictionary for dicom tags or a list of dictionaries with dicom tags
     """
     base_url = Path(api_key.split(":")[0])
     base_url /= "io-proxy/wado"
@@ -135,11 +135,11 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
 
     Args:
         fw_client (flywheel.Client): The active flywheel client
-        project_id ([type]): [description]
-        Length ([type]): [description]
+        project_id (str): The project id to inquire dicom tags for
+        Length (dict): The ohif-derived json from a single measurement
 
     Returns:
-        [type]: [description]
+        tuple: start/stop coordinates in voxel/RAS-space plus conversion matrix
     """
     host = fw_client._fw.api_client.configuration.host[:-8]
     api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix[
@@ -160,19 +160,19 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
 
     instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
 
-    # find first instance:
+    # find first instance for the first ImagePosition as image origin
     first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
     # (0020, 0032) Image Position (Patient)
     ImagePosition = first_inst["00200032"]["Value"]
-    # (0020, 0037) Image Orientation (Patient)
-    ImageOrientation = first_inst["00200037"]["Value"]
-    # (0028, 0030) Pixel Spacing
-    PixelSpacing = first_inst["00280030"]["Value"]
 
+    # The rest of the tags come from the measured slice
     slice_instance = io_proxy_wado(
         api_key, api_key_prefix, project_id, study, series, instance
     )
-
+    # (0020, 0037) Image Orientation (Patient)
+    ImageOrientation = slice_instance["00200037"]["Value"]
+    # (0028, 0030) Pixel Spacing
+    PixelSpacing = slice_instance["00280030"]["Value"]
     # (0018, 0088) Spacing Between Slices
     SpacingBetweenSlices = slice_instance["00180088"]["Value"][0]
     # 0020, 0013) Instance Number
@@ -189,13 +189,14 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         [Length["handles"]["end"]["x"], Length["handles"]["end"]["y"], InstanceNumber]
     ).reshape((3, 1))
 
+    # Create third column from the cross-product of the first two
     ijk_RAS_matrix[:3, 0] = ImageOrientation[:3]
-    ijk_RAS_matrix[:2, 0] = -1 * ijk_RAS_matrix[:2, 0]
     ijk_RAS_matrix[:3, 1] = ImageOrientation[3:]
-    ijk_RAS_matrix[:2, 1] = -1 * ijk_RAS_matrix[:2, 1]
     ijk_RAS_matrix[:3, 2] = np.cross(ijk_RAS_matrix[:3, 0], ijk_RAS_matrix[:3, 1])
     ijk_RAS_matrix[:3, 3] = ImagePosition
-    ijk_RAS_matrix[:2, 3] = -1 * ijk_RAS_matrix[:2, 3]
+
+    # Adjust for the direction of the voxel coordinate system
+    ijk_RAS_matrix = np.matmul(np.diag([-1, -1, 1, 1], ijk_RAS_matrix))
 
     spacing = np.diag([PixelSpacing[0], PixelSpacing[1], SpacingBetweenSlices, 1])
 
@@ -215,14 +216,14 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
 
 def assess_completed_status(ohif_viewer, user_data):
     """
-    assess_completed_status [summary]
+    Assess completion status from the ohif_viewer data and the user data
 
     Args:
-        ohif_viewer ([type]): [description]
-        user_data ([type]): [description]
+        ohif_viewer (dict): All ohif-viewer data with measurements to check
+        user_data (dict): All of the classification data for a particular reader
 
     Returns:
-        boolean: [description]
+        boolean: Completion Status (True/False)
     """
     if not user_data:
         completed_status = False
@@ -267,10 +268,10 @@ def fill_session_attributes(fw_client, project_features, session):
 
     Args:
         fw_client (flywheel.Client): The active flywheel client
-        project_features (dict): A dictionary representing features of the 
+        project_features (dict): A dictionary representing features of the
             source project
-        session (flywheel.Session): The flywheel session object being queried for 
-            completion status 
+        session (flywheel.Session): The flywheel session object being queried for
+            completion status
 
     Returns:
         dict: Session attributes to populate an output dataframe
@@ -361,12 +362,12 @@ def fill_reader_case_data(fw_client, project_features, session):
     fill_reader_case_data [summary]
 
     Args:
-        fw_client ([type]): [description]
-        project_features ([type]): [description]
-        session ([type]): [description]
+        fw_client (flywheel.Client): The active flywheel client
+        project_features (dict): Valid features for the Master Project.
+        session (flywheel.Session): Flywheel session with case assignments
 
     Returns:
-        list: [description]
+        list: List of assignment status for each assignment in a session
     """
     # Each session has a set of features: case_coverage and assignments
     # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
