@@ -340,8 +340,7 @@ def create_or_update_reader_projects(
     )
 
     # If readers_to_instantiate is empty (no new readers from csv), create reader
-    # projects for all
-    # readers in group without one
+    # projects for all readers in group without one
     if not readers_to_instantiate:
         readers_to_instantiate = [
             (reader, max_cases) for reader in group_readers_new_projects

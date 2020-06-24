@@ -163,12 +163,15 @@ def main(context):
             )
 
         reader_csv_path = define_reader_csv(context)
+        max_cases = (
+            context.config.get("max_cases") if context.config.get("max_cases") else 30
+        )
 
         _created_data = create_or_update_reader_projects(
             fw_client,
             reader_group,
             source_project,
-            context.config["max_cases"],
+            max_cases,
             readers_csv=reader_csv_path,
         )
         created_data.extend(_created_data)

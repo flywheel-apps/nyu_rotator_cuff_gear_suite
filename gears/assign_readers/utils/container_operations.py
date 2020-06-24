@@ -247,6 +247,7 @@ def create_project(fw_client, project_label, group, user_id, project_info={}):
     apply_group_template_to_project(fw_client, new_project, group)
 
     new_project.update_info(project_info)
+    new_project = new_project.reload()
 
     # Get the generic "read-write" role and apply to the user for this project
     rw_role = [
