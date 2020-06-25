@@ -176,18 +176,6 @@ def find_or_create_group(fw_client, group_id, group_label):
 
     group = fw_client.groups.find_first(f'_id="{group_id}"')
 
-    # admin_role = [role for role in fw_client.get_all_roles() if role.label == "admin"][
-    #     0
-    # ]
-
-    # site_admins = [user for user in fw_client.users() if "site_admin" in user.roles]
-    # for admin in site_admins:
-    #     if not [perm.id for perm in group.permissions_template if perm.id == admin.id]:
-    #         role_assignment = flywheel.RolesRoleAssignment(admin.id, [admin_role.id])
-    #         group.permissions_template.append(role_assignment)
-    #     if not [perm.id for perm in group.permissions if perm.id == admin.id]:
-    #         group.add_permission({"_id": admin.id, "access": "admin"})
-
     created_container = define_created(group)
 
     return group.reload(), [created_container]
@@ -349,6 +337,7 @@ def export_session(fw_client, source_session, dest_project, export_info=False):
         source_session (flywheel.Session): The session to be exported.
         dest_project (flywheel.Project): The destination project receiving the
             source session
+        export_info (bool, optional): Export session info or not. Defaults to False.
 
     Returns:
         tuple:  dest_session(flywheel.Session),

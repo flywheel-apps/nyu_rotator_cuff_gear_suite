@@ -1,6 +1,6 @@
 {
     "name": "assign-readers",
-    "label": "Assign Readers to Created Projects",
+    "label": "1. Assign Readers to Created Projects",
     "description": "This gear assigns readers to projects with each reader as the sole user to a project. Should that project already exist, the maximum cases each reader can be assigned may be changed.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",

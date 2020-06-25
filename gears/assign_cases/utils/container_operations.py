@@ -57,14 +57,14 @@ SESSION_KEYS = [
 ACQUISITION_KEYS = ["info", "label", "timestamp", "timezone", "uid"]
 
 
-def define_export(fw, container, dest_project):
+def define_export(fw_client, container, dest_project):
     """
     define an exported container by source and destination paths
 
     described in EXPORTED_CONTAINER_TEMPLATE
 
     Args:
-        fw (flywheel.Client): Flywheel Client object instantiated on instance
+        fw_client (flywheel.Client): Flywheel Client object instantiated on instance
         container (flywheel.container): A subject, session, or acquisition container
 
     Returns:
@@ -74,7 +74,7 @@ def define_export(fw, container, dest_project):
     export_obj = EXPORTED_CONTAINER_TEMPLATE.copy()
     export_obj["container"] = container.container_type
 
-    source_project = fw.get(container.parents["project"])
+    source_project = fw_client.get(container.parents["project"])
 
     if export_obj["container"] is "subject":
         export_obj["name"] = container.code
@@ -89,12 +89,12 @@ def define_export(fw, container, dest_project):
         export_obj["origin_path"] += f"/{container.code}"
         export_obj["export_path"] += f"/{container.code}"
     elif export_obj["container"] is "session":
-        subject = fw.get(container.parents["subject"])
+        subject = fw_client.get(container.parents["subject"])
         export_obj["origin_path"] += f"/{subject.code}/{container.label}"
         export_obj["export_path"] += f"/{subject.code}/{container.label}"
     elif export_obj["container"] is "acquisition":
-        subject = fw.get(container.parents["subject"])
-        session = fw.get(container.parents["session"])
+        subject = fw_client.get(container.parents["subject"])
+        session = fw_client.get(container.parents["session"])
         export_obj[
             "origin_path"
         ] += f"/{subject.code}/{session.label}/{container.label}"
@@ -124,12 +124,12 @@ def define_created(container):
     return created_container
 
 
-def _cleanup(fw, created_data):
+def _cleanup(fw_client, created_data):
     """
     In the case of a failure, cleanup all containers that were created.
 
     Args:
-        fw (flywheel.Client): The Flywheel Client
+        fw_client (flywheel.Client): The Flywheel Client
         created_data (dict): A list of CREATED_CONTAINER_TEMPLATE instances
     """
 
@@ -138,50 +138,50 @@ def _cleanup(fw, created_data):
         log.info("Deleting %i acquisition containers", len(acquisitions))
         for a in acquisitions:
             log.debug(a)
-            fw.delete_acquisition(a["id"])
+            fw_client.delete_acquisition(a["id"])
 
     sessions = [x for x in created_data if x["container"] == "session"]
     if sessions:
         log.info("Deleting %i session containers", len(sessions))
         for s in sessions:
             log.debug(s)
-            fw.delete_session(s["id"])
+            fw_client.delete_session(s["id"])
 
     subjects = [x for x in created_data if x["container"] == "subject" and x["new"]]
     if subjects:
         log.info("Deleting %i subject containers", len(subjects))
         for s in subjects:
             log.debug(s)
-            fw.delete_subject(s["id"])
+            fw_client.delete_subject(s["id"])
 
 
-def find_or_create_group(fw, group_id, group_label):
+def find_or_create_group(fw_client, group_id, group_label):
     """
     return an existing group or return a created group with group_id and group_label
 
     Args:
-        fw (flywheel.Client): Flywheel Client
+        fw_client (flywheel.Client): Flywheel Client
         group_id (str): The ID of the group
         group_label (str): The name of the group
 
     Returns:
         tuple: The tuple of created flywheel.Group and CREATED_CONTAINER_TEMPLATE
     """
-    found_groups = fw.groups.find(f'_id="{group_id}"')
+    found_groups = fw_client.groups.find(f'_id="{group_id}"')
 
     if len(found_groups) > 0:
         return found_groups[0].reload(), []
 
-    group_id = fw.add_group(flywheel.Group(group_id, group_label))
+    group_id = fw_client.add_group(flywheel.Group(group_id, group_label))
 
-    group = fw.groups.find_first(f'_id="{group_id}"')
+    group = fw_client.groups.find_first(f'_id="{group_id}"')
 
     created_container = define_created(group)
 
     return group.reload(), [created_container]
 
 
-def create_project(fw, project_label, group, user_id, project_info={}):
+def create_project(fw_client, project_label, group, user_id, project_info={}):
 
     """
     Create a new reader project under group with user_id as only user.
@@ -189,7 +189,7 @@ def create_project(fw, project_label, group, user_id, project_info={}):
     Reader project will have a maximum number of sessions defined by max_assignments.
 
     Args:
-        fw (flywheel.Client): Flywheel Client object instantiated on instance
+        fw_client (flywheel.Client): Flywheel Client object instantiated on instance
         project_label (str): A string representing the label of the new project
         group (flywheel.Group): The target group container
         user_id (str): ID of user, identified by email address
@@ -206,7 +206,9 @@ def create_project(fw, project_label, group, user_id, project_info={}):
     new_project.update_info(project_info)
 
     # Get the generic "read-write" role and apply to the user for this project
-    rw_role = [role for role in fw.get_all_roles() if role.label == "read-write"][0]
+    rw_role = [
+        role for role in fw_client.get_all_roles() if role.label == "read-write"
+    ][0]
     user_permission = {"_id": user_id, "role_ids": [rw_role.id]}
     new_project.add_permission(user_permission)
 
@@ -215,14 +217,14 @@ def create_project(fw, project_label, group, user_id, project_info={}):
     return new_project, created_container
 
 
-def export_or_find_subject(fw, source_subject, dest_project):
+def export_or_find_subject(fw_client, source_subject, dest_project):
     """
     Exports source_subject to dest_project.
 
     If source_subject exists in dest_project the destination subject is returned.
 
     Args:
-        fw (flywheel.Client): Flywheel Client object instantiated on instance
+        fw_client (flywheel.Client): Flywheel Client object instantiated on instance
         source_subject (flywheel.Subject): The source subject to export
         dest_project (flywheel.Project): The destination project to receive
             the exported subject
@@ -232,7 +234,7 @@ def export_or_find_subject(fw, source_subject, dest_project):
                 subj_export(EXPORTED_CONTAINER_TEMPLATE),
                 created_container(CREATED_CONTAINER_TEMPLATE)
     """
-    subj_export = define_export(fw, source_subject, dest_project)
+    subj_export = define_export(fw_client, source_subject, dest_project)
 
     dest_subject = dest_project.subjects.find_first(f'code="{source_subject.code}"')
     if not dest_subject:
@@ -289,15 +291,17 @@ def export_or_find_subject(fw, source_subject, dest_project):
     return dest_subject, subj_export, created_container
 
 
-def export_session(fw, source_session, dest_project):
+def export_session(fw_client, source_session, dest_project, export_info=False):
+
     """
     Export a session (source_session) to project (dest_project).
 
     Args:
-        fw (flywheel.Client): Flywheel Client object instantiated on instance
+        fw_client (flywheel.Client): Flywheel Client object instantiated on instance
         source_session (flywheel.Session): The session to be exported.
         dest_project (flywheel.Project): The destination project receiving the
             source session
+        export_info (bool, optional): Export session info or not. Defaults to False.
 
     Returns:
         tuple:  dest_session(flywheel.Session),
@@ -317,7 +321,7 @@ def export_session(fw, source_session, dest_project):
         # use that subject
 
         dest_subject, subj_export, created_container = export_or_find_subject(
-            fw, source_subject, dest_project
+            fw_client, source_subject, dest_project
         )
 
         exported_data.append(subj_export)
@@ -332,13 +336,14 @@ def export_session(fw, source_session, dest_project):
             dest_project.label,
             source_subject.label,
         )
-        session_export = define_export(fw, source_session, dest_project)
+        session_export = define_export(fw_client, source_session, dest_project)
 
         session_metadata = {}
         for key in SESSION_KEYS:
-            value = source_session.get(key)
-            if value:
-                session_metadata[key] = value
+            if not (key == "info" and export_info is False):
+                value = source_session.get(key)
+                if value:
+                    session_metadata[key] = value
 
         # Add session to the subject
         dest_session = dest_subject.add_session(session_metadata)
@@ -369,7 +374,7 @@ def export_session(fw, source_session, dest_project):
                 "CREATING ACQUISITION CONTAINER: [label=%s]", source_acquisition.label
             )
             _, acq_export, created_container = export_acquisition(
-                fw, source_acquisition, dest_session
+                fw_client, source_acquisition, dest_session
             )
             exported_data.append(acq_export)
 
@@ -389,16 +394,16 @@ def export_session(fw, source_session, dest_project):
     except Exception as e:
         log.exception("ERRORS DETECTED exporting session, %s", source_session.label)
         log.info("CLEANING UP...")
-        _cleanup(fw, created_data)
+        _cleanup(fw_client, created_data)
         raise e
 
 
-def export_acquisition(fw, source_acquisition, dest_session):
+def export_acquisition(fw_client, source_acquisition, dest_session):
     """
     exports acquisition object, acquisition metadata, and acquisitions files
 
     Args:
-        fw (flywheel.Client): Flywheel Client object instantiated on instance
+        fw_client (flywheel.Client): Flywheel Client object instantiated on instance
         source_acquisition (flywheel.Acquisition): Flywheel acquisition to export
         dest_session (flywheel.Session): Flywheel session to receive source acquisition
 
@@ -407,10 +412,10 @@ def export_acquisition(fw, source_acquisition, dest_session):
                 acquisition_export(EXPORTED_CONTAINER_TEMPLATE),
                 created_container(CREATED_CONTAINER_TEMPLATE)
     """
-    # source_subject = fw.get(source_acquisition.parents['subject'])
-    # source_session = fw.get(source_acquisition.parents['session'])
-    dest_project = fw.get(dest_session.project)
-    acquisition_export = define_export(fw, source_acquisition, dest_project)
+    # source_subject = fw_client.get(source_acquisition.parents['subject'])
+    # source_session = fw_client.get(source_acquisition.parents['session'])
+    dest_project = fw_client.get(dest_session.project)
+    acquisition_export = define_export(fw_client, source_acquisition, dest_project)
 
     acquisition_metadata = {}
     for key in ACQUISITION_KEYS:
@@ -428,6 +433,6 @@ def export_acquisition(fw, source_acquisition, dest_session):
 
     # Export the individual files in each acquisition
     log.info("Exporting files to %s...", dest_acquisition.label)
-    _export_files(fw, source_acquisition, dest_acquisition)
+    _export_files(fw_client, source_acquisition, dest_acquisition)
 
     return dest_acquisition, acquisition_export, created_container

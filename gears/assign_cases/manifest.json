@@ -1,6 +1,6 @@
 {
     "name": "assign-cases",
-    "label": "Assign Cases to Readers",
+    "label": "2. Assign Cases to Readers",
     "description": "This gear assigns cases from the master project to readers given constraints. Each case is assessed by a \"case_coverage\" number of readers. Each reader elects to have a maximum number of cases (\"max_cases\") to assess.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
