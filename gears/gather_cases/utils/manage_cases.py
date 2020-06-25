@@ -196,7 +196,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     ijk_RAS_matrix[:3, 3] = ImagePosition
 
     # Adjust for the direction of the voxel coordinate system
-    ijk_RAS_matrix = np.matmul(np.diag([-1, -1, 1, 1], ijk_RAS_matrix))
+    ijk_RAS_matrix = np.matmul(np.diag([-1, -1, 1, 1]), ijk_RAS_matrix)
 
     spacing = np.diag([PixelSpacing[0], PixelSpacing[1], SpacingBetweenSlices, 1])
 
@@ -319,6 +319,14 @@ def fill_session_attributes(fw_client, project_features, session):
                 assignment["status"] = "Classified"
                 session_attributes["classified"] += 1
                 reader_id = assignment["reader_id"].replace(".", "_")
+                if not ohif_viewer["read"].get(reader_id):
+                    reader_id = list(ohif_viewer["read"].keys())[0]
+                    log.warn(
+                        "Assigned reader, %s, did not measure this case. "
+                        "Most likely an administrator, %s, did.",
+                        assignment["reader_id"],
+                        reader_id.replace("_", "."),
+                    )
                 user_data = ohif_viewer["read"][reader_id]["notes"]
 
             if ohif_viewer.get("measurements"):
@@ -401,6 +409,8 @@ def fill_reader_case_data(fw_client, project_features, session):
         if ohif_viewer:
             if ohif_viewer.get("read"):
                 reader_id = assignment["reader_id"].replace(".", "_")
+                if not ohif_viewer["read"].get(reader_id):
+                    reader_id = list(ohif_viewer["read"].keys())[0]
                 user_data = ohif_viewer["read"][reader_id]["notes"]
                 case_assignment_status.update(user_data)
 
