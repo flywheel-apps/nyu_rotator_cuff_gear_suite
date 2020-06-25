@@ -19,6 +19,7 @@ def main(context):
     try:
         fw_client = context.client
 
+        verify_user_permissions(fw_client, context)
         check_for_duplicate_execution(fw_client, "assign-cases")
 
         destination_id = context.destination["id"]
