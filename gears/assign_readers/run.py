@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from gear_toolkit import gear_toolkit_context
 
-from utils.check_jobs import check_for_duplicate_execution
+from utils.check_jobs import check_for_duplicate_execution, verify_user_permissions
 from utils.container_operations import find_or_create_group
 from utils.manage_cases import (
     InvalidGroupError,

@@ -9,7 +9,7 @@ import os
 
 from gear_toolkit import gear_toolkit_context
 
-from utils.check_jobs import check_for_duplicate_execution
+from utils.check_jobs import check_for_duplicate_execution, verify_user_permissions
 from utils.manage_cases import (
     InvalidGroupError,
     InvalidLaunchContainerError,
