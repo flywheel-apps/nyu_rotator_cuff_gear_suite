@@ -500,9 +500,10 @@ def gather_case_data_from_readers(fw_client, source_project):
         )
 
         case_assignments = fill_reader_case_data(fw_client, project_features, session)
-        case_assessment_df = case_assessment_df.append(
-            case_assignments, ignore_index=True
-        )
+        if case_assignments:
+            case_assessment_df = case_assessment_df.append(
+                case_assignments, ignore_index=True
+            )
 
     source_project.update_info({"project_features": project_features})
 
