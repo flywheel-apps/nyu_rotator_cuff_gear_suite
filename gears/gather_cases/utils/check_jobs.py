@@ -62,27 +62,35 @@ def verify_user_permissions(fw_client, context, permitted_roles=["admin"]):
 
     if not set(permitted).intersection(project_user_perms):
         message = "You do not have sufficient permissions to run this gear."
-        log.error(message)
         raise InsufficientPermissionsError(message)
 
 
-def check_for_duplicate_execution(fw_client, gear_name):
+def check_for_duplicate_execution(fw_client):
     """
     Checks for the existence of a duplicate running gear.
 
     Args:
         fw_client (flywheel.Client): A flywheel client
-        gear_name (str): The name of the running gear
+        gear_names (str): The name of the running gear
 
     Raises:
         DuplicateJobError: If a duplicate job is found, raise this error with message
     """
-    jobs = [
-        job
-        for job in fw_client.jobs.find(f"gear_info.name={gear_name}")
-        if job.state in ["running", "pending"]
+    nyu_suite_gears = [
+        "assign-readers",
+        "assign-cases",
+        "gather-cases",
+        "assign-single-case",
     ]
+    jobs_w_empty = [
+        [
+            job
+            for job in fw_client.jobs.find(f"gear_info.name={gear_name}")
+            if job.state in ["running", "pending"]
+        ]
+        for gear_name in nyu_suite_gears
+    ]
+    jobs = [job for job in jobs_w_empty if job]
     if len(jobs) >= 2:
         message = "Two or more concurrent gear executions is not allowed."
-        log.error(message)
         raise DuplicateJobError(message)

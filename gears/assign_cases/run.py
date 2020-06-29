@@ -9,7 +9,12 @@ import os
 
 from gear_toolkit import gear_toolkit_context
 
-from utils.check_jobs import check_for_duplicate_execution, verify_user_permissions
+from utils.check_jobs import (
+    DuplicateJobError,
+    InsufficientPermissionsError,
+    check_for_duplicate_execution,
+    verify_user_permissions,
+)
 from utils.manage_cases import InvalidGroupError, distribute_cases_to_readers
 
 log = logging.getLogger(__name__)
@@ -20,7 +25,7 @@ def main(context):
         fw_client = context.client
 
         verify_user_permissions(fw_client, context)
-        check_for_duplicate_execution(fw_client, "assign-cases")
+        check_for_duplicate_execution(fw_client)
 
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
@@ -40,7 +45,10 @@ def main(context):
         source_sess_df.to_csv(str(context.output_dir / "master_project_case_data.csv"))
         dest_proj_df.to_csv(str(context.output_dir / "reader_project_case_data.csv"))
         exported_data_df.to_csv(str(context.output_dir / "exported_data.csv"))
-
+    except (DuplicateJobError, InsufficientPermissionsError, InvalidGroupError,) as e:
+        log.error(e.message)
+        log.fatal("Error executing assign-readers.",)
+        return 1
     except Exception as e:
         log.exception(e,)
         log.fatal("Error executing assign-cases.",)

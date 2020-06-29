@@ -1,13 +1,17 @@
 import logging
 import os
+import shutil
 
 import flywheel
 import numpy as np
 import pandas as pd
+import requests
 
 from .container_operations import create_project, export_session, find_or_create_group
 
 log = logging.getLogger(__name__)
+
+OHIF_CONFIG = "/flywheel/v0/ohif_config.json"
 
 
 class InvalidGroupError(Exception):
@@ -140,6 +144,7 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         ][0]
         for proj in group_projects
     ]
+
     for index in readers_df.index:
         reader_id = readers_df.email[index]
         # if the csv reader_id is not in the current reader projects, skip
@@ -176,7 +181,7 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
             reader_project.update_info(project_info)
 
 
-def instantiate_new_readers(fw_client, group, group_readers, readers_df):
+def instantiate_new_readers(fw_client, group, readers_df):
     """
     Instantiate and grant permissions to new readers found in readers_df
 
@@ -190,6 +195,7 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
         list: A list of reader ids (emails) from the csv requiring a new project
     """
     readers_to_instantiate = []
+
     # All Flywheel users on instance.
     users_ids = [user.id for user in fw_client.users()]
 
@@ -206,37 +212,30 @@ def instantiate_new_readers(fw_client, group, group_readers, readers_df):
         )
         fw_client.add_user(fw_user)
 
-    # check if the new readers need to be added to the specific reader group
-    new_group_readers = readers_df[~readers_df.email.isin(group_readers)]
-    for indx in new_group_readers.index:
-        new_group_user = new_group_readers.loc[indx, "email"]
-        # TODO: The following line may change with the v12.0.0 SDK
-        user_permission = {"_id": new_group_user, "access": "rw"}
+    # A Reader Project will have only one rw/ro user
+    proj_roles = [
+        role.id
+        for role in fw_client.get_all_roles()
+        if role.label in ["read-write", "read-only"]
+    ]
 
-        if [perm.id for perm in group.permissions if perm.id == new_group_user]:
-            log.warning(
-                "User, %s, is an administrator of the Readers group.", new_group_user
-            )
-        else:
-            group.add_permission(user_permission)
-
+    project_readers = [
+        [
+            perm.id
+            for perm in proj.permissions
+            if set(perm.role_ids).intersection(proj_roles)
+        ][0]
+        for proj in group.projects()
+    ]
+    for indx in readers_df[~readers_df.email.isin(project_readers)].index:
         readers_to_instantiate.append(
-            (new_group_user, int(new_group_readers.max_cases[indx]))
+            (readers_df.email[indx], int(readers_df.max_cases[indx]))
         )
-
-    # if we added new group permissions update the group_readers
-    if new_group_readers.shape[0] > 0:
-        group = group.reload()
-        # TODO: Group permissions may be changing
-        group_readers = [
-            perm.id for perm in group.permissions if perm.access in ["rw", "ro"]
-        ]
-
     return readers_to_instantiate
 
 
 def create_or_update_reader_projects(
-    fw_client, group, master_project, max_cases=30, readers_csv=None
+    fw_client, group, master_project, readers_csv=None
 ):
     """
     Updates the number and attributes of reader projects to reflect constraints
@@ -269,12 +268,6 @@ def create_or_update_reader_projects(
             "container", "id", and "new" as described in define_container above.
     """
 
-    # List of group permissions with rw and ro only:
-    # TODO: Group permissions may be changing
-    group_readers = [
-        perm.id for perm in group.permissions if perm.access in ["rw", "ro"]
-    ]
-
     # Generate list of all projects in this group
     group_projects = fw_client.projects.find(f'group="{group.id}"')
 
@@ -301,7 +294,7 @@ def create_or_update_reader_projects(
 
             # identify new readers, instantiate, give group permissions
             readers_to_instantiate = instantiate_new_readers(
-                fw_client, group, group_readers, readers_df
+                fw_client, group, readers_df
             )
 
         else:
@@ -312,59 +305,14 @@ def create_or_update_reader_projects(
                 '", "'.join(req_columns),
             )
 
-    # The following assumes that the resultant project will have only one non-admin user
-    # 'read-write' if they are currently editing
-    # 'read-only' if they are complete with their tasks
-
-    proj_roles = [
-        role.id
-        for role in fw_client.get_all_roles()
-        if role.label in ["read-write", "read-only"]
-    ]
-
-    reader_projects = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group_projects
-    ]
-
-    # Extend "readers_to_instantiate" with list of readers with 'rw' group permissions,
-    # but are not in the group's projects
-
-    # group users needing projects instantiated
-    group_readers_new_projects = list(
-        set(group_readers).difference(set(reader_projects))
-    )
-
-    # If readers_to_instantiate is empty (no new readers from csv), create reader
-    # projects for all readers in group without one
-    if not readers_to_instantiate:
-        readers_to_instantiate = [
-            (reader, max_cases) for reader in group_readers_new_projects
-        ]
-    else:
-        # else, prevent duplicate reader project creation
-        pending_new_reader_projects = [
-            reader for (reader, max_cases) in readers_to_instantiate
-        ]
-        readers_to_instantiate.extend(
-            [
-                (reader, max_cases)
-                for reader in group_readers_new_projects
-                if reader not in pending_new_reader_projects
-            ]
-        )
-
     ohif_config_path = None
     if readers_to_instantiate:
         ohif_config_path = "/tmp/ohif_config.json"
         if master_project.get_file("ohif_config.json"):
             master_project.download_file("ohif_config.json", ohif_config_path)
         else:
-            ohif_config_path = None
+            shutil.copyfile(OHIF_CONFIG, ohif_config_path)
+            master_project.upload_file(ohif_config_path)
 
     for reader, _max_cases in readers_to_instantiate:
         reader_number = len(group.projects()) + 1

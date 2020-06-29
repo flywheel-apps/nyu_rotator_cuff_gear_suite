@@ -5,7 +5,12 @@ import os
 
 from gear_toolkit import gear_toolkit_context
 
-from utils.check_jobs import check_for_duplicate_execution, verify_user_permissions
+from utils.check_jobs import (
+    DuplicateJobError,
+    InsufficientPermissionsError,
+    check_for_duplicate_execution,
+    verify_user_permissions,
+)
 from utils.manage_cases import (
     InvalidGroupError,
     UninitializedGroupError,
@@ -20,7 +25,7 @@ def main(context):
         fw_client = context.client
 
         verify_user_permissions(fw_client, context)
-        check_for_duplicate_execution(fw_client, "gather-cases")
+        check_for_duplicate_execution(fw_client)
 
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
@@ -57,7 +62,15 @@ def main(context):
                 "Ensure there are cases assigned to readers by running both the "
                 "`assign-readers` and `assign-cases` gears with valid configuration."
             )
-
+    except (
+        DuplicateJobError,
+        InsufficientPermissionsError,
+        InvalidGroupError,
+        UninitializedGroupError,
+    ) as e:
+        log.error(e.message)
+        log.fatal("Error executing assign-readers.",)
+        return 1
     except Exception as e:
         log.exception(e,)
         log.fatal("Error executing gather-cases-data.",)
