@@ -142,19 +142,18 @@ def test_add_new_readers(tmpdir):
     reader_df = pd.read_csv(tmpdir / "reader_project_case_data.csv")
     for i in reader_df.index:
         reader_project = fw_client.get(reader_df.id[i]).reload()
-        assert (
-            reader_project.info["project_features"]["assignments"]
-            == reader_df.assignments[i]
-        )
+
+        assert reader_project.info["project_features"][
+            "assignments"
+        ] == ast.literal_eval(reader_df.assignments[i])
         assert reader_df.max_cases[i] >= reader_df.num_assignments[i]
 
     # Test master_project_case_data.csv
     cases_df = pd.read_csv(tmpdir / "master_project_case_data.csv")
     for i in cases_df.index:
         case_session = fw_client.get(cases_df.id[i])
-        assert (
-            case_session.info["session_features"]["assignments"]
-            == cases_df.assignments[i]
+        assert case_session.info["session_features"]["assignments"] == ast.literal_eval(
+            cases_df.assignments[i]
         )
         assert cases_df.case_coverage[i] >= cases_df.assigned_count[i]
 

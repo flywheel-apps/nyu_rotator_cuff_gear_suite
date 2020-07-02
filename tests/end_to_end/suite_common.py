@@ -50,7 +50,7 @@ def run_gear_w_config(
     job_id = gear.run(
         config=config, analysis_label="E2E Test", inputs=inputs, destination=session
     )
-
+    time.sleep(2)
     job = get_job_from_id(fw_client, job_id)
 
     while job.state not in ["complete", "failed"]:
@@ -92,9 +92,10 @@ def purge_reader_group(fw_client):
         for perm in group.permissions:
             if perm.access != "admin":
                 group.delete_permission(perm.id)
-
-        src_project = fw_client.projects.find_one('label="Master"')
-        src_sessions = src_project.sessions()
-        src_project.delete_info("project_features")
-        for session in src_sessions:
-            session.delete_info("session_features")
+        src_projects = fw_client.projects.find('group="msk"')
+        src_projects.extend(fw_client.projects.find('group="msk2"'))
+        for src_project in src_projects:
+            src_sessions = src_project.sessions()
+            src_project.delete_info("project_features")
+            for session in src_sessions:
+                session.delete_info("session_features")

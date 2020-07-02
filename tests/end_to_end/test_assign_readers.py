@@ -55,8 +55,8 @@ def test_invalid_config():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config2/config.json",
-        clear_config=True,
+        DATA_ROOT / "invalid_config/config.json",
+        clear_input=True,
     )
 
     assert job.state == "failed"
@@ -120,7 +120,7 @@ def test_invalid_csv():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config3/config.json",
+        DATA_ROOT / "invalid_csv/config.json",
         clear_config=True,
     )
 
@@ -147,7 +147,7 @@ def test_valid_csv_update_w_config():
     job, _, config, inputs = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config3/config.json",
+        DATA_ROOT / "config2/config.json",
         clear_config=True,
     )
 
@@ -169,7 +169,7 @@ def test_valid_csv_update_w_config():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config3/config.json",
+        DATA_ROOT / "config2/config.json",
         clear_config=True,
         clear_input=True,
         replace_config=config,

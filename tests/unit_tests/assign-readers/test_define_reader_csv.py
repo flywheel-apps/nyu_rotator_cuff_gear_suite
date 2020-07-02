@@ -87,7 +87,7 @@ def test_invalid_config():
             try:
                 reader_csv_path = define_reader_csv(context)
 
-            except Exception as e:
+            except InvalidInputError as e:
                 assert isinstance(e, InvalidInputError)
                 assert (
                     e.message
@@ -207,7 +207,7 @@ def test_invalid_reader_csv(caplog):
             create_invalid_csv(context)
             try:
                 reader_csv_path = define_reader_csv(context)
-            except Exception as e:
+            except InvalidInputError as e:
                 exp_messages = [
                     'The csv-file "users-short.csv" did not have the '
                     'required columns("email", "first_name", "last_name", "max_cases")'

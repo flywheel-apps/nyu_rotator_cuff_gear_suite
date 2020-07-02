@@ -257,6 +257,11 @@ def assess_completed_status(ohif_viewer, user_data):
                         completed_status &= False
                 else:
                     completed_status &= False
+            elif user_data[tendon + "Tear"] == "fullContiguous":
+                if user_data["supraspinatusTear"] == "full":
+                    completed_status &= True
+                else:
+                    completed_status &= False
             else:
                 completed_status &= False
     return completed_status

@@ -1,10 +1,5 @@
 {
-    "config": {
-        "reader_email": "georgeJetson@gmail.com",
-        "reader_firstname": "George",
-        "reader_lastname": "Jetson",
-        "max_cases": 5
-    },
+    "config": {},
     "inputs": {
         "reader_csv": {
             "type": "project",

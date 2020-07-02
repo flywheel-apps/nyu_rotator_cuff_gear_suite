@@ -1,8 +1,8 @@
 {
     "config": {
         "reader_email": "georgeJetson@gmail.com",
-        "reader_firstname": "George",
         "reader_lastname": "Jetson",
+        "reader_firstname": "",
         "max_cases": 5
     },
     "inputs": {

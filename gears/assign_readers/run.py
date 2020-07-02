@@ -8,14 +8,14 @@ from pathlib import Path
 import pandas as pd
 from gear_toolkit import gear_toolkit_context
 
-from utils.check_jobs import (
+from .utils.check_jobs import (
     DuplicateJobError,
     InsufficientPermissionsError,
     check_for_duplicate_execution,
     verify_user_permissions,
 )
-from utils.container_operations import find_or_create_group
-from utils.manage_cases import (
+from .utils.container_operations import find_or_create_group
+from .utils.manage_cases import (
     InvalidGroupError,
     InvalidInputError,
     create_or_update_reader_projects,
@@ -109,6 +109,13 @@ def define_reader_csv(context):
                             ]
                         ),
                     )
+
+            # Check the whole DataFrame for compliance to the regex on emails
+            if not all([re.search(regex, X) is not None for X in readers_df.email]):
+                raise InvalidInputError(
+                    "Cannot proceed without a valid CSV file or valid specified reader!"
+                )
+
             # Create a csv and return its path
             work_csv = context.work_dir / Path(reader_csv_path).name
             readers_df.to_csv(work_csv, index=False)

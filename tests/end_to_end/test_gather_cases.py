@@ -1,5 +1,6 @@
 import ast
 import json
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -16,7 +17,7 @@ def test_gather_cases_no_readers():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         gather_cases_gear,
-        DATA_ROOT / "gather_cases/config.json",
+        DATA_ROOT / "config2/config.json",
         clear_config=True,
         clear_input=True,
     )
@@ -47,6 +48,9 @@ def test_pipeline_injecting_assessment(tmpdir):
 
     assert job.state == "complete"
 
+    # Wait for the cases to be indexed
+    time.sleep(30)
+
     # inject assessments into the first case of the three readers
     session = session.reload()
     analysis = [
@@ -54,7 +58,13 @@ def test_pipeline_injecting_assessment(tmpdir):
     ].pop()
 
     measurements = json.load(open(DATA_ROOT / "gather_cases/measurements.json", "r"))
-    reader_keys = ["no_tear", "partial_tear", "full_tear"]
+    assessment_keys = [
+        "no_tear",
+        "low_partial_tear",
+        "high_partial_tear",
+        "full_tear",
+        "full_contig",
+    ]
 
     reader_case_data_csv = "reader_project_case_data.csv"
     analysis.download_file(reader_case_data_csv, tmpdir / reader_case_data_csv)
@@ -63,9 +73,10 @@ def test_pipeline_injecting_assessment(tmpdir):
     for i in reader_df.index:
         reader_project = fw_client.get(reader_df.id[i]).reload()
         project_features = reader_project.info["project_features"]
-        assignment = project_features["assignments"][0]
-        dest_session = fw_client.get(assignment["dest_session"])
-        dest_session.update_info(measurements[reader_keys[i]])
+        for j in range(5):
+            assignment = project_features["assignments"][j]
+            dest_session = fw_client.get(assignment["dest_session"])
+            dest_session.update_info(measurements[assessment_keys[j]])
 
     # Run the gather-cases gear
     fw_client, gather_cases_gear = init_gear("gather-cases")
@@ -102,7 +113,7 @@ def test_pipeline_injecting_assessment(tmpdir):
         assert summary_data_df.case_coverage[i] == case_state["case_coverage"]
         assert summary_data_df.assigned[i] == case_state["assigned"]
         assert summary_data_df.unassigned[i] == case_state["unassigned"]
-        assert summary_data_df.diagnosed[i] == case_state["diagnosed"]
+        assert summary_data_df.classified[i] == case_state["classified"]
         assert summary_data_df.measured[i] == case_state["measured"]
         assert summary_data_df.completed[i] == case_state["completed"]
         # check source session features
@@ -112,20 +123,25 @@ def test_pipeline_injecting_assessment(tmpdir):
     # Ensure ohifViewer data was migrated to the correct session
     for i in reader_df.index:
         csv_assignments = ast.literal_eval(reader_df.assignments[i])
-        source_session = fw_client.get(csv_assignments[0]["source_session"]).reload()
-        assignments = source_session.info["session_features"]["assignments"]
-        reader_project_id = reader_df.id[i]
-        assignment = [
-            assignment
-            for assignment in assignments
-            if assignment["project_id"] == reader_project_id
-        ].pop()
-        if assignment.get("read"):
-            read = measurements[reader_keys[i]]["ohifViewer"]["read"]
-            assert assignment["read"] == read
-        if assignment.get("measurements"):
-            measurement = measurements[reader_keys[i]]["ohifViewer"]["measurements"]
-            assert assignment["measurements"] == measurement
+        for j in range(5):
+            source_session = fw_client.get(
+                csv_assignments[j]["source_session"]
+            ).reload()
+            assignments = source_session.info["session_features"]["assignments"]
+            reader_project_id = reader_df.id[i]
+            assignment = [
+                assignment
+                for assignment in assignments
+                if assignment["project_id"] == reader_project_id
+            ].pop()
+            if assignment.get("read"):
+                read = measurements[assessment_keys[j]]["ohifViewer"]["read"]
+                assert assignment["read"] == read
+            if assignment.get("measurements"):
+                measurement = measurements[assessment_keys[j]]["ohifViewer"][
+                    "measurements"
+                ]
+                assert assignment["measurements"] == measurement
 
     # Cleanup
     purge_reader_group(fw_client)
