@@ -17,7 +17,7 @@ def test_gather_cases_no_readers():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         gather_cases_gear,
-        DATA_ROOT / "config2/config.json",
+        DATA_ROOT / "assign_readers/config.json",
         clear_config=True,
         clear_input=True,
     )
@@ -31,7 +31,7 @@ def test_pipeline_injecting_assessment(tmpdir):
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config2/config.json",
+        DATA_ROOT / "assign_readers/config.json",
         clear_config=True,
     )
 
@@ -42,7 +42,7 @@ def test_pipeline_injecting_assessment(tmpdir):
     job, session, _, _ = run_gear_w_config(
         fw_client,
         assign_cases_gear,
-        DATA_ROOT / "config4/config.json",
+        DATA_ROOT / "assign_cases/config.json",
         clear_input=True,
     )
 

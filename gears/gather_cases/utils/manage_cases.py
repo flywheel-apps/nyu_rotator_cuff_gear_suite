@@ -14,15 +14,20 @@ CASE_ASSESSMENT_REC = {
     "session": None,
     "reader_id": None,
     "completed": False,
+    "completed_timestamp": None,
     "infraspinatusTear": None,
     "infraspinatusDifficulty": None,
     "infraspinatusRetraction": None,
+    "infraspinatus_anteroposterior_seriesDescription": None,
+    "infraspinatus_anteroposterior_seriesInstanceUid": None,
     "infraspinatus_anteroposterior_Length": None,
     "infraspinatus_anteroposterior_Voxel_Start": None,
     "infraspinatus_anteroposterior_Voxel_End": None,
     "infraspinatus_anteroposterior_RAS_Start": None,
     "infraspinatus_anteroposterior_RAS_End": None,
     "infraspinatus_anteroposterior_ijk_to_RAS": None,
+    "infraspinatus_mediolateral_seriesDescription": None,
+    "infraspinatus_mediolateral_seriesInstanceUid": None,
     "infraspinatus_mediolateral_Length": None,
     "infraspinatus_mediolateral_Voxel_Start": None,
     "infraspinatus_mediolateral_Voxel_End": None,
@@ -32,12 +37,16 @@ CASE_ASSESSMENT_REC = {
     "subscapularisTear": None,
     "subscapularisDifficulty": None,
     "subscapularisRetraction": None,
+    "subscapularis_mediolateral_seriesDescription": None,
+    "subscapularis_mediolateral_seriesInstanceUid": None,
     "subscapularis_mediolateral_Length": None,
     "subscapularis_mediolateral_Voxel_Start": None,
     "subscapularis_mediolateral_Voxel_End": None,
     "subscapularis_mediolateral_RAS_Start": None,
     "subscapularis_mediolateral_RAS_End": None,
     "subscapularis_mediolateral_ijk_to_RAS": None,
+    "subscapularis_craniocaudal_seriesDescription": None,
+    "subscapularis_craniocaudal_seriesInstanceUid": None,
     "subscapularis_craniocaudal_Length": None,
     "subscapularis_craniocaudal_Voxel_Start": None,
     "subscapularis_craniocaudal_Voxel_End": None,
@@ -47,12 +56,16 @@ CASE_ASSESSMENT_REC = {
     "supraspinatusTear": None,
     "supraspinatusDifficulty": None,
     "supraspinatusRetraction": None,
+    "supraspinatus_anteroposterior_seriesDescription": None,
+    "supraspinatus_anteroposterior_seriesInstanceUid": None,
     "supraspinatus_anteroposterior_Length": None,
     "supraspinatus_anteroposterior_Voxel_Start": None,
     "supraspinatus_anteroposterior_Voxel_End": None,
     "supraspinatus_anteroposterior_RAS_Start": None,
     "supraspinatus_anteroposterior_RAS_End": None,
     "supraspinatus_anteroposterior_ijk_to_RAS": None,
+    "supraspinatus_mediolateral_seriesDescription": None,
+    "supraspinatus_mediolateral_seriesInstanceUid": None,
     "supraspinatus_mediolateral_Length": None,
     "supraspinatus_mediolateral_Voxel_Start": None,
     "supraspinatus_mediolateral_Voxel_End": None,
@@ -93,7 +106,7 @@ def io_proxy_wado(
     api_key, api_key_prefix, project_id, study=None, series=None, instance=None
 ):
     """
-    Request wrapper for io-proxy api (https://{instance}/io-proxy/docs#/) 
+    Request wrapper for io-proxy api (https://{instance}/io-proxy/docs#/)
 
     Args:
         api_key (str): Full instance api-key
@@ -175,8 +188,10 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     PixelSpacing = slice_instance["00280030"]["Value"]
     # (0018, 0088) Spacing Between Slices
     SpacingBetweenSlices = slice_instance["00180088"]["Value"][0]
-    # 0020, 0013) Instance Number
+    # (0020, 0013) Instance Number
     InstanceNumber = slice_instance["00200013"]["Value"][0]
+    # (0008, 103E) Series Description
+    SeriesDescription = slice_instance["0008103E"]["Value"][0]
 
     voxel_start[:3] = np.array(
         [
@@ -211,6 +226,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         ras_start.reshape((4,))[:3],
         ras_end.reshape((4,))[:3],
         ijk_RAS_matrix.tolist(),
+        SeriesDescription,
     )
 
 
@@ -417,6 +433,9 @@ def fill_reader_case_data(fw_client, project_features, session):
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
                 user_data = ohif_viewer["read"][reader_id]["notes"]
+                user_data["completed_timestamp"] = ohif_viewer["read"][reader_id][
+                    "date"
+                ]
                 case_assignment_status.update(user_data)
 
             completed_status = assess_completed_status(ohif_viewer, user_data)
@@ -433,9 +452,16 @@ def fill_reader_case_data(fw_client, project_features, session):
                             ras_start,
                             ras_end,
                             ijk_RAS_matrix,
+                            seriesDescription,
                         ) = io_proxy_acquire_coords(
                             fw_client, assignment["project_id"], Length
                         )
+                        case_assignment_status[
+                            prefix + "_seriesDescription"
+                        ] = seriesDescription
+                        case_assignment_status[prefix + "_seriesInstanceUid"] = Length[
+                            "seriesInstanceUid"
+                        ]
                         case_assignment_status[prefix + "_Voxel_Start"] = voxel_start
                         case_assignment_status[prefix + "_Voxel_End"] = voxel_end
                         case_assignment_status[prefix + "_RAS_Start"] = ras_start

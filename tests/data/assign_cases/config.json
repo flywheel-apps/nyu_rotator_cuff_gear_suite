@@ -1,0 +1,12 @@
+{
+    "config": {
+        "case_coverage": 3
+    },
+    "inputs": {
+        "reader_csv": {
+            "type": "project",
+            "id": "5f0f63a1957ea005dac8aabb",
+            "name": "users-short.csv"
+        }
+    }
+}

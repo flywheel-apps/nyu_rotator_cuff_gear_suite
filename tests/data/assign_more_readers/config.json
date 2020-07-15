@@ -8,8 +8,8 @@
     "inputs": {
         "reader_csv": {
             "type": "project",
-            "id": "5e5969f051081b027a97633c",
-            "name": "users-short.csv"
+            "id": "5f0f63a1957ea005dac8aabb",
+            "name": "users.csv"
         }
     }
 }
