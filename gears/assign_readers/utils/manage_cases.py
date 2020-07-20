@@ -1,6 +1,8 @@
 import logging
 import os
+import re
 import shutil
+from pathlib import Path
 
 import flywheel
 import numpy as np
@@ -38,6 +40,133 @@ class InvalidInputError(Exception):
     def __init__(self, message):
         Exception.__init__(self)
         self.message = message
+
+
+def define_reader_csv(context):
+    """
+    Loads, updates or creates a csv file based on gear input and configuration
+
+    If the reader_csv is specified in the gear configuration (and is valid) it is
+    loaded as a pandas dataframe.
+
+    If a specified reader is valid (email, firstname, lastname) it is appended
+    to the pandas dataframe (if invalid, skipped).
+
+    Without the reader_csv (or invalid) the specified reader is validated and saved to
+    a csv file in the context.work directory.  If specified reader is invalid,
+    None is returned.
+
+    Args:
+        context (gear_toolkit.GearContext): The gear context
+
+    Raises:
+        InvalidInputError: If neither the configuration (email, firstname, lastname) nor
+            the input (csv with fields email, firstname, lastname, max_cases) is valid
+            then this Error is thrown and the gear fails with message.
+
+    Returns:
+        str: The path of the resultant csv file or None (fail)
+    """
+    readers_df = []
+    # regex for checking validity of readers email
+    regex = r"^[a-zA-Z0-9.]+[\._]?[a-zA-Z0-9.]+[@]\w+[.]\w{2,3}$"
+    # Ensure valid inputs and act consistently
+    reader_csv_path = context.get_input_path("reader_csv")
+    if reader_csv_path:
+        readers_df = pd.read_csv(reader_csv_path)
+        # Validate that dataframe has required columns before proceeding
+        req_columns = ["email", "first_name", "last_name", "max_cases"]
+        if not all([(c in readers_df.columns) for c in req_columns]):
+            log.warning(
+                'The csv-file "%s" did not have the required columns("%s").'
+                + "Proceeding without reader CSV.",
+                Path(reader_csv_path).name,
+                '", "'.join(req_columns),
+            )
+            reader_csv_path = None
+        else:
+            # if we have a reader email, check for existence in csv (update),
+            # otherwise we need to create (if all conditions are satisfied)
+            if context.config.get("reader_email"):
+                reader_email = context.config.get("reader_email")
+                # if we find the reader's email in the dataframe,
+                if len(readers_df[readers_df.email == reader_email]) > 0:
+                    indx = readers_df[readers_df.email == reader_email].index[0]
+                    # Update the max_cases in the dataframe
+                    readers_df.loc[indx, "max_cases"] = context.config["max_cases"]
+                    # This will trigger an update in the metadata on assign-cases
+                # else if we have reader's email, firstname, and lastname
+                elif (
+                    context.config.get("max_cases")
+                    and (context.config.get("max_cases") > 0)
+                    and (context.config.get("max_cases") < 600)
+                    and context.config.get("reader_email")
+                    and re.search(regex, context.config.get("reader_email"))
+                    and context.config.get("reader_firstname")
+                    and context.config.get("reader_lastname")
+                ):
+                    readers_df = readers_df.append(
+                        {
+                            "email": context.config.get("reader_email"),
+                            "first_name": context.config.get("reader_firstname"),
+                            "last_name": context.config.get("reader_lastname"),
+                            "max_cases": context.config.get("max_cases"),
+                        },
+                        ignore_index=True,
+                    )
+                # else the indicated reader is invalid
+                else:
+                    log.warning(
+                        "The specified reader is not configured correctly. "
+                        'Proceeding without specified reader ("%s").',
+                        '", "'.join(
+                            [
+                                str(context.config.get("reader_email")),
+                                str(context.config.get("reader_firstname")),
+                                str(context.config.get("reader_lastname")),
+                            ]
+                        ),
+                    )
+
+            # Check the whole DataFrame for compliance to the regex on emails
+            if not all([re.search(regex, X) is not None for X in readers_df.email]):
+                raise InvalidInputError(
+                    "Cannot proceed without a valid CSV file or valid specified reader!"
+                )
+
+            # Create a csv and return its path
+            work_csv = context.work_dir / Path(reader_csv_path).name
+            readers_df.to_csv(work_csv, index=False)
+            return work_csv
+
+    # if the csv is not provided and we have a valid reader entry
+    if not reader_csv_path and (
+        context.config.get("max_cases")
+        and (context.config.get("max_cases") > 0)
+        and (context.config.get("max_cases") < 600)
+        and context.config.get("reader_email")
+        and re.search(regex, context.config.get("reader_email"))
+        and context.config.get("reader_firstname")
+        and context.config.get("reader_lastname")
+    ):
+        # create that dataframe
+        readers_df = pd.DataFrame(
+            data={
+                "email": context.config.get("reader_email"),
+                "first_name": context.config.get("reader_firstname"),
+                "last_name": context.config.get("reader_lastname"),
+                "max_cases": context.config.get("max_cases"),
+            },
+            index=[0],
+        )
+        # save it to the work directory
+        work_csv = context.work_dir / "temp.csv"
+        readers_df.to_csv(work_csv, index=False)
+        return work_csv
+    else:
+        raise InvalidInputError(
+            "Cannot proceed without a valid CSV file or valid specified reader!"
+        )
 
 
 def set_session_features(session, case_coverage):
@@ -257,8 +386,6 @@ def create_or_update_reader_projects(
         group (flywheel.Group): The group ("readers") to update the reader projects for
         master_project (flywheel.Project): The project we are copying sessions, files,
             and metadata from.
-        max_cases (int): The maximum number of cases to be assigned to
-            flywheel users newly assigned to the group.
         readers_csv (str, optional): A filepath to the CSV input containing
             reader emails, names, and max_cases for assignment or updating.
                 Defaults to None.
@@ -517,7 +644,7 @@ def distribute_cases_to_readers(
 
     # Create or update reader projects
     _created_data = create_or_update_reader_projects(
-        fw_client, reader_group, src_project, max_cases, readers_csv=reader_csv
+        fw_client, reader_group, src_project, readers_csv=reader_csv
     )
     created_data.extend(_created_data)
 

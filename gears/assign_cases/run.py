@@ -60,8 +60,11 @@ def main(context):
 
 if __name__ == "__main__":
     # TODO: Eliminate for site-testing.
-    tst_dir = "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/Data/assign-cases-0.0.2-dev-d_5efa219b4a97dc035c87f963"
-    with gear_toolkit_context.GearToolkitContext(tst_dir) as gear_context:
+    tst_dir = (
+        "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/"
+        "Data/assign-cases-0.0.2-dev-d_5efa219b4a97dc035c87f963"
+    )
+    with gear_toolkit_context.GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

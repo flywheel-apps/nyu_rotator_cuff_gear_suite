@@ -7,8 +7,7 @@ import pandas as pd
 import pytest
 from gear_toolkit import gear_toolkit_context
 
-from gears.assign_readers.run import define_reader_csv
-from gears.assign_readers.utils.manage_cases import InvalidInputError
+from gears.assign_readers.utils.manage_cases import InvalidInputError, define_reader_csv
 
 DATA_ROOT = Path(__file__).parents[2] / "data"
 
