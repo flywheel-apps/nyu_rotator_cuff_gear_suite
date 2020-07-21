@@ -1,13 +1,11 @@
 import logging
 import os
 import re
-import shutil
 from pathlib import Path
 
 import flywheel
 import numpy as np
 import pandas as pd
-import requests
 
 from .container_operations import create_project, export_session, find_or_create_group
 
@@ -42,6 +40,27 @@ class InvalidInputError(Exception):
         self.message = message
 
 
+def confirm_or_create_ohif_config(master_project):
+    """
+    Confirms or creates ohif_config.json in master project.
+
+    The ohif_config.json file determines the functionality and presentation of the 
+    ohifViewer for this project.
+
+    TODO: Some mechanism to verify that the master project has the most recent
+    ohif_config.json.
+
+    Args:
+        master_project (flywheel.Project): The Master Project with the ohif_config.json.
+    """
+    ohif_config_path = "/tmp/ohif_config.json"
+    if master_project.get_file("ohif_config.json"):
+        master_project.download_file("ohif_config.json", ohif_config_path)
+        # TODO: This is where we would compare them.
+    else:
+        master_project.upload_file(OHIF_CONFIG)
+
+
 def define_reader_csv(context):
     """
     Loads, updates or creates a csv file based on gear input and configuration
@@ -50,7 +69,8 @@ def define_reader_csv(context):
     loaded as a pandas dataframe.
 
     If a specified reader is valid (email, firstname, lastname) it is appended
-    to the pandas dataframe (if invalid, skipped).
+    to the pandas dataframe (if invalid, skipped). The email field is converted to all
+    lowercase regardless of the configuration or inputs.
 
     Without the reader_csv (or invalid) the specified reader is validated and saved to
     a csv file in the context.work directory.  If specified reader is invalid,
@@ -69,7 +89,7 @@ def define_reader_csv(context):
     """
     readers_df = []
     # regex for checking validity of readers email
-    regex = r"^[a-zA-Z0-9.]+[\._]?[a-zA-Z0-9.]+[@]\w+[.]\w{2,3}$"
+    regex = r"^[a-z0-9.]+[\._]?[a-z0-9.]+[@]\w+[.]\w{2,3}$"
     # Ensure valid inputs and act consistently
     reader_csv_path = context.get_input_path("reader_csv")
     if reader_csv_path:
@@ -101,13 +121,13 @@ def define_reader_csv(context):
                     and (context.config.get("max_cases") > 0)
                     and (context.config.get("max_cases") < 600)
                     and context.config.get("reader_email")
-                    and re.search(regex, context.config.get("reader_email"))
+                    and re.search(regex, context.config.get("reader_email").lower())
                     and context.config.get("reader_firstname")
                     and context.config.get("reader_lastname")
                 ):
                     readers_df = readers_df.append(
                         {
-                            "email": context.config.get("reader_email"),
+                            "email": context.config.get("reader_email").lower(),
                             "first_name": context.config.get("reader_firstname"),
                             "last_name": context.config.get("reader_lastname"),
                             "max_cases": context.config.get("max_cases"),
@@ -129,6 +149,7 @@ def define_reader_csv(context):
                     )
 
             # Check the whole DataFrame for compliance to the regex on emails
+            readers_df.email = readers_df.email.str.lower()
             if not all([re.search(regex, X) is not None for X in readers_df.email]):
                 raise InvalidInputError(
                     "Cannot proceed without a valid CSV file or valid specified reader!"
@@ -145,14 +166,14 @@ def define_reader_csv(context):
         and (context.config.get("max_cases") > 0)
         and (context.config.get("max_cases") < 600)
         and context.config.get("reader_email")
-        and re.search(regex, context.config.get("reader_email"))
+        and re.search(regex, context.config.get("reader_email").lower())
         and context.config.get("reader_firstname")
         and context.config.get("reader_lastname")
     ):
         # create that dataframe
         readers_df = pd.DataFrame(
             data={
-                "email": context.config.get("reader_email"),
+                "email": context.config.get("reader_email").lower(),
                 "first_name": context.config.get("reader_firstname"),
                 "last_name": context.config.get("reader_lastname"),
                 "max_cases": context.config.get("max_cases"),
@@ -434,12 +455,7 @@ def create_or_update_reader_projects(
 
     ohif_config_path = None
     if readers_to_instantiate:
-        ohif_config_path = "/tmp/ohif_config.json"
-        if master_project.get_file("ohif_config.json"):
-            master_project.download_file("ohif_config.json", ohif_config_path)
-        else:
-            shutil.copyfile(OHIF_CONFIG, ohif_config_path)
-            master_project.upload_file(ohif_config_path)
+        confirm_or_create_ohif_config(master_project)
 
     for reader, _max_cases in readers_to_instantiate:
         reader_number = len(group.projects()) + 1

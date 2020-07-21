@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-This gear, assign-cases, assigns cases to individual reader projects.  Reader projects 
+This gear, assign-cases, assigns cases to individual reader projects.  Reader projects
 are created with the assign-readers gear.
 """
 

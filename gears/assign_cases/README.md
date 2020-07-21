@@ -1,8 +1,28 @@
 # assign-cases
 
-The `assign-cases` gear distributes cases from a populated "Master Project" to reader projects given the following constraints. Each case is assessed by a preset number of readers (**case_coverage**). Likewise, each reader elects to have a maximum number of cases (**max_cases**), to assess for tears. On assignment, each case--along with its acquisitions, files, and metadata--is copied to a reader's project for assessment by that reader.
+The `assign-cases` gear distributes cases from a populated "Master Project" to reader projects given the following constraints. Each case is assessed by a preset number of readers (**case_coverage**). Likewise, each reader elects to have a maximum number of cases (**max_cases**), to assess for rotator cuff tears. On assignment, each case--along with its acquisitions, files, and metadata--is copied to a reader's project for assessment by that reader.
 
-The assignment of each case to a **case_coverage** number of distinct readers is done by random sampling of available readers without replacement. Each reader is considered available if they are assigned less than their maximum number of cases (**max_cases**). Furthermore, readers with the least number of assignments are preferred for selection. This results in cases being distributed to readers as evenly as possible within the above constraints.
+The assignment of each case to a **case_coverage** number of distinct readers is done by random sampling of available readers without replacement. Each reader is considered available if they are assigned less than their maximum number of cases (**max_cases**). Furthermore, readers with the least number of assignments are preferred for selection. This results in cases being distributed to readers as evenly as possible within the above constraints. This strategy comes with the consequence of the following constraints for the complete assignment of all cases:
+
+1. Single Master Project with Single Distribution.
+
+    All cases assigned to all readers from a single master project in a single distribution.
+
+    **total_number_of_cases** * **case_coverage** <= **number_of_readers** * **max_cases**.
+
+2. Single Master Project with Multiple Distributions.
+
+    The **max_cases** for each reader is incrementally updated to allow for multiple distributions from a single master project.  The change in **max_cases** (**∆ max_cases**) times number of readers must be divisible by **case_coverage**
+
+    **number_of_readers** * **∆ max_cases** % **case_coverage** = 0
+
+3. Multiple Masters Projects with Multiple Distributions.
+
+    Multiple Master Projects with specific number of cases (**batch_size**) each can be completely distributed over all readers if each **batch_size** is divisible by the number of readers.
+
+    **batch_size** % **number_of_readers** = 0
+
+All of these assume that **max_cases** is defined and incremented consistently across all readers for usage of the `assign-cases` gear. If **max_cases** differs across readers, `assign-cases` may not completely distribute the cases of a particular Master Project. For (2) and (3), above, the end-state of the system must be constrained by the condition in (1) for complete distribution of all cases from all Master Projects.
 
 Depending on the number of cases to assign to readers, the execution of this gear may take hours.  However, once a case is assigned, present and indexed in any reader project it is available to be assessed. On completion of this gear any remaining coordination data is recorded in the associated Master Project and reader projects.
 
@@ -16,13 +36,15 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Usage Notes
 
-The `assign-cases` gear relies on cases present in a "Master Project" that haven’t been distributed and the number of available readers. On execution, the gear will distribute each case to a specified number of readers.
+The `assign-cases` gear distributes cases present in a "Master Project" to the available readers. Available readers are those readers with less than **max_cases** number of cases assigned.
 
-The `assign-cases` gear is executed with the following configuration parameter. Successfull execution ensures outputs described below.
+The `assign-cases` gear is executed with the following configuration parameters. Successfull execution ensures outputs described below.
 
 NOTE: This gear assumes that you are running it from within a "Master Project".  Attempting to execute this gear from within a reader project will fail.
 
 NOTE: Additional execution without first updating the number of cases and/or the number of readers will result in no actions performed.
+
+NOTE: This gear distributes the `ohif_config.json` file to the master project, should it not yet exist. The `ohif_config.json` file is necessary to render and validate the assessment of each case.
 
 ### Gear Configuration
 

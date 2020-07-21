@@ -32,6 +32,7 @@ WORKDIR ${FLYWHEEL}
 COPY run.py ${FLYWHEEL}/run.py
 COPY utils ${FLYWHEEL}/utils
 COPY manifest.json ${FLYWHEEL}/manifest.json
+COPY ohif_config.json ${FLYWHEEL}/ohif_config.json
 
 RUN chmod a+x ${FLYWHEEL}/run.py
 

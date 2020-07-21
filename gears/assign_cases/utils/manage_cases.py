@@ -9,6 +9,8 @@ from .container_operations import create_project, export_session, find_or_create
 
 log = logging.getLogger(__name__)
 
+OHIF_CONFIG = "/flywheel/v0/ohif_config.json"
+
 
 class InvalidGroupError(Exception):
     """
@@ -47,6 +49,27 @@ class NoReaderProjectsError(Exception):
     def __init__(self, message):
         Exception.__init__(self)
         self.message = message
+
+
+def confirm_or_create_ohif_config(master_project):
+    """
+    Confirms or creates ohif_config.json in master project.
+
+    The ohif_config.json file determines the functionality and presentation of the 
+    ohifViewer for this project.
+
+    TODO: Some mechanism to verify that the master project has the most recent
+    ohif_config.json.
+
+    Args:
+        master_project (flywheel.Project): The Master Project with the ohif_config.json.
+    """
+    ohif_config_path = "/tmp/ohif_config.json"
+    if master_project.get_file("ohif_config.json"):
+        master_project.download_file("ohif_config.json", ohif_config_path)
+        # TODO: This is where we would compare them.
+    else:
+        master_project.upload_file(OHIF_CONFIG)
 
 
 def set_session_features(session, case_coverage):
@@ -533,7 +556,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
 
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to host instance
-        src_project_label (str): The label of the source project for all sessions
+        src_project (flywheel.Project): The source project for all sessions
         reader_group_id (str): The Flywheel container id for the group in question
         case_coverage (int): The default number of readers assigned to each session
 
@@ -548,6 +571,8 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         if src_project.get("project_features")
         else {"case_coverage": case_coverage, "case_states": []}
     )
+    # Ensure a valid ohif_config.json file is present for the master project
+    confirm_or_create_ohif_config(src_project)
 
     src_sessions = src_project.sessions()
 
@@ -566,6 +591,15 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     source_sessions_df, dest_projects_df = initialize_dataframes(
         fw_client, reader_group
     )
+
+    if len(src_sessions) % dest_projects_df.shape[0] != 0:
+        log.warning(
+            "The number of sessions/cases (%i) in this batch is not divisible by the "
+            "number of Readers (%i). This will result in an uneven distribution of "
+            "exported sessions across the readers.",
+            len(src_sessions),
+            dest_projects_df.shape[0],
+        )
 
     # If the dataframe for destination projects is empty, raise an error.
     if dest_projects_df.shape[0] == 0:
