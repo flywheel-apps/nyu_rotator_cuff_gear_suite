@@ -65,6 +65,46 @@ def test_valid_config():
             ]
 
 
+def test_email_capitalization():
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        # Create the temporay gear directory
+        gear_dir = Path(tmp_folder) / "gear"
+        gear_dir.mkdir(parents=True, exist_ok=True)
+
+        # Instantiate a gear context object
+        with gear_toolkit_context.GearToolkitContext(
+            gear_path=gear_dir, input_args=[]
+        ) as context:
+            # create a configuration
+            config = create_gear_config(
+                "Test.Email@email.com", "test-firstname", "test-lastname", 23
+            )
+            for k, v in config.items():
+                context.config[k] = v
+
+            # Create a reader csv that will be used to populate with one reader
+            reader_csv_path = define_reader_csv(context)
+
+            # Assert that these have the expected path
+            assert reader_csv_path == context.work_dir / "temp.csv"
+
+            # Load the created csv
+            test_df = pd.read_csv(reader_csv_path)
+
+            # Test its values with respects to the config above.
+            assert [
+                test_df.email[0],
+                test_df.first_name[0],
+                test_df.last_name[0],
+                test_df.max_cases[0],
+            ] == [
+                config["reader_email"].lower(),
+                config["reader_firstname"],
+                config["reader_lastname"],
+                config["max_cases"],
+            ]
+
+
 def test_invalid_config():
     with tempfile.TemporaryDirectory() as tmp_folder:
         # Create the temporay gear directory
@@ -97,7 +137,7 @@ def test_invalid_config():
 
 def create_gear_dir(tmp_folder):
     gear_dir = Path(tmp_folder) / "gear"
-    shutil.copytree(DATA_ROOT / "config1", gear_dir)
+    shutil.copytree(DATA_ROOT / "assign_readers_csv", gear_dir)
     config_tochange = json.load(open(gear_dir / "config.json", "r"))
     input_path = config_tochange["inputs"]["reader_csv"]["location"]["path"]
     input_path = input_path.replace("DATA_DIR", str(gear_dir))
@@ -119,6 +159,7 @@ def test_valid_user_csv(tmpdir):
             == gear_dir / "work" / context.get_input("reader_csv")["location"]["name"]
         )
         source_df = pd.read_csv(context.get_input_path("reader_csv"))
+        source_df.email = source_df.email.str.lower()
         dest_df = pd.read_csv(reader_csv_path)
         assert source_df.equals(dest_df)
 
@@ -129,9 +170,9 @@ def test_valid_csv_with_valid_config(tmpdir):
     with gear_toolkit_context.GearToolkitContext(
         gear_path=gear_dir, input_args=[]
     ) as context:
-        # create a configuration
+        # create a configuration w/CAPs to test casting embedded in define_reader_csv
         config = create_gear_config(
-            "test.email@email.com", "test-firstname", "test-lastname", 23
+            "Test.Email@email.com", "test-firstname", "test-lastname", 23
         )
         for k, v in config.items():
             context.config[k] = v
@@ -155,6 +196,7 @@ def test_valid_csv_with_valid_config(tmpdir):
             },
             ignore_index=True,
         )
+        source_df.email = source_df.email.str.lower()
         dest_df = pd.read_csv(reader_csv_path)
         assert source_df.equals(dest_df)
 

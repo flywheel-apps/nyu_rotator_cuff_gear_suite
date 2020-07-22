@@ -124,6 +124,7 @@ def test_pipeline_injecting_assessment(tmpdir):
     for i in reader_df.index:
         csv_assignments = ast.literal_eval(reader_df.assignments[i])
         for j in range(5):
+            print(reader_df.reader_id[i], assessment_keys[j])
             source_session = fw_client.get(
                 csv_assignments[j]["source_session"]
             ).reload()

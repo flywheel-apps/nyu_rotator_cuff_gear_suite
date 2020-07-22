@@ -10,12 +10,12 @@ def _create_archive(content_dir, arcname, zipfilepath=None):
     Create zip archive from content_dir
 
     Args:
-        content_dir ([type]): [description]
-        arcname ([type]): [description]
-        zipfilepath ([type], optional): [description]. Defaults to None.
+        content_dir (str): The directory to compress the contents of
+        arcname (str): archive name
+        zipfilepath (str, optional): Path to create zipfile. Defaults to None.
 
     Returns:
-        [type]: [description]
+        str: Returns the path of the zipfile created
     """
     if not zipfilepath:
         zipfilepath = content_dir + ".zip"
@@ -31,15 +31,15 @@ def _create_archive(content_dir, arcname, zipfilepath=None):
 
 def _extract_archive(zip_file_path, extract_location):
     """
-    Extract zipfile to <zip_file_path> and return the path to the directory containing the dicoms,
-    which should be the zipfile name without the zip extension.
+    Extract zipfile to <zip_file_path> and return the path to the directory containing
+    the dicoms, which should be the zipfile name without the zip extension.
 
     Args:
-        zip_file_path ([type]): [description]
-        extract_location ([type]): [description]
+        zip_file_path (str): Path of zipfile to extract
+        extract_location (str): Path to extract zip file to
 
     Returns:
-        [type]: [description]
+        str: extracted destination
     """
     if not zipfile.is_zipfile(zip_file_path):
         log.warning("%s is not a Zip File!", zip_file_path)
@@ -64,29 +64,29 @@ def _extract_archive(zip_file_path, extract_location):
             return extract_dest
 
 
-def _export_files(fw_client, source_acquisition, dest_acquisition):
+def _export_files(fw, source_acquisition, dest_acquisition):
     """
     Export source_acquisition files to the exported acquisiton.
 
     For each file in the source_acquisition:
         1. Download the file
-            a. If the file is a DICOM file, modify the DICOM archives individual files to match
-               the appropriate metadata as exists in Flywheel.
+            a. If the file is a DICOM file, modify the DICOM archives individual files
+               to match the appropriate metadata as exists in Flywheel.
         2. Upload the file to the dest_acquisition
         3. Modify the file in the dest_acquisition to have the same metadata
 
     Args:
-        fw_client ([type]): [description]
-        source_acquisition ([type]): [description]
-        dest_acquisition ([type]): [description]
-        map_fw_to_dcm (bool, optional): [description]. Defaults to False.
+        fw (flywheel.Client): Valid Flywheel Client
+        source_acquisition (flywheel.Acquisition): Source Acquisition of files
+        dest_acquisition (flywheel.Acquisition): Destination Acquisition of files
+        map_fw_to_dcm (bool, optional): Not Used. Defaults to False.
     """
 
     # Get the source_acquisition so that the metadata are all there.
     source_acquisition = source_acquisition.reload()
-    source_session = fw_client.get(source_acquisition.parents["session"])
-    source_subject = fw_client.get(source_acquisition.parents["subject"])
-    source_project = fw_client.get(source_acquisition.parents["project"])
+    source_session = fw.get(source_acquisition.parents["session"])
+    source_subject = fw.get(source_acquisition.parents["subject"])
+    source_project = fw.get(source_acquisition.parents["project"])
 
     for acq_file in source_acquisition.files:
         log.info(
@@ -112,7 +112,7 @@ def _export_files(fw_client, source_acquisition, dest_acquisition):
             status = dest_acquisition.upload_file(upload_file_path)
             log.info("Upload status = %s", status)
             # NOTE: Why do we do this? Can't we reload instead?
-            dest_acquisition = fw_client.get_acquisition(dest_acquisition.id)
+            dest_acquisition = fw.get_acquisition(dest_acquisition.id)
             file_names = [x.name for x in dest_acquisition.files]
             log.debug(file_names)
             if os.path.basename(upload_file_path) not in file_names:

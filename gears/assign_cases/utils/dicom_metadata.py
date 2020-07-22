@@ -86,7 +86,9 @@ def parse_patient_age(age):
         scale = "Y"
         value = age
 
-    age_in_seconds = datetime.timedelta(int(value) * conversion.get(scale)).total_seconds()
+    age_in_seconds = datetime.timedelta(
+        int(value) * conversion.get(scale)
+    ).total_seconds()
 
     # Make sure that the age is reasonable
     if not age_in_seconds or age_in_seconds <= 0:
@@ -309,11 +311,15 @@ def get_pydicom_header(dcm):
     tags = dcm.dir()
     for tag in tags:
         try:
-            if (tag not in exclude_tags) and (type(dcm.get(tag)) != pydicom.sequence.Sequence):
+            if (tag not in exclude_tags) and (
+                type(dcm.get(tag)) != pydicom.sequence.Sequence
+            ):
                 value = dcm.get(tag)
                 if value or value == 0:  # Some values are zero
                     # Put the value in the header
-                    if type(value) == str and len(value) < 10240:  # Max pydicom field length
+                    if (
+                        type(value) == str and len(value) < 10240
+                    ):  # Max pydicom field length
                         header[tag] = format_string(value)
                     else:
                         header[tag] = assign_type(value)
@@ -418,7 +424,10 @@ def dicom_header_extract(zip_file_path):
                 log.warning("%s does not exist!", dcm_path)
         dcm = dcm_list[-1]
     else:
-        log.info("Not a zip_file. Attempting to read %s directly", os.path.basename(zip_file_path))
+        log.info(
+            "Not a zip_file. Attempting to read %s directly",
+            os.path.basename(zip_file_path),
+        )
         dcm = pydicom.read_file(zip_file_path)
         dcm_list = [dcm]
     if not dcm:

@@ -50,3 +50,9 @@ def test_reader_assigned_shift():
         "5eba0eb1bfda5102356aa06a",
         "5eba0eb2bfda5102356aa06d",
     ]
+
+    """
+     TODO: Put tests here that demonstrate the three ways to distribute over
+        3*520 = 13*120 (case_coverage*total_cases = number_of_readers*max_cases)
+        and the constraints therein.
+    """

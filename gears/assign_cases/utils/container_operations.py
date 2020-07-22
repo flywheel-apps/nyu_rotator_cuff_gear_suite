@@ -182,7 +182,6 @@ def find_or_create_group(fw_client, group_id, group_label):
 
 
 def create_project(fw_client, project_label, group, user_id, project_info={}):
-
     """
     Create a new reader project under group with user_id as only user.
 

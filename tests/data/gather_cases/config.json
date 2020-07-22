@@ -3,7 +3,7 @@
     "inputs": {
         "reader_csv": {
             "type": "project",
-            "id": "5f0f63a1957ea005dac8aabb",
+            "id": "5f174c122384cf000c737b8c",
             "name": "users-short.csv"
         }
     }

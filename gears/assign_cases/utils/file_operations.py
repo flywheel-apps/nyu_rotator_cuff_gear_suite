@@ -10,12 +10,12 @@ def _create_archive(content_dir, arcname, zipfilepath=None):
     Create zip archive from content_dir
 
     Args:
-        content_dir ([type]): [description]
-        arcname ([type]): [description]
-        zipfilepath ([type], optional): [description]. Defaults to None.
+        content_dir (str): The directory to compress the contents of
+        arcname (str): archive name
+        zipfilepath (str, optional): Path to create zipfile. Defaults to None.
 
     Returns:
-        [type]: [description]
+        str: Returns the path of the zipfile created
     """
     if not zipfilepath:
         zipfilepath = content_dir + ".zip"
@@ -35,11 +35,11 @@ def _extract_archive(zip_file_path, extract_location):
     the dicoms, which should be the zipfile name without the zip extension.
 
     Args:
-        zip_file_path ([type]): [description]
-        extract_location ([type]): [description]
+        zip_file_path (str): Path of zipfile to extract
+        extract_location (str): Path to extract zip file to
 
     Returns:
-        [type]: [description]
+        str: extracted destination
     """
     if not zipfile.is_zipfile(zip_file_path):
         log.warning("%s is not a Zip File!", zip_file_path)
@@ -76,10 +76,10 @@ def _export_files(fw, source_acquisition, dest_acquisition):
         3. Modify the file in the dest_acquisition to have the same metadata
 
     Args:
-        fw ([type]): [description]
-        source_acquisition ([type]): [description]
-        dest_acquisition ([type]): [description]
-        map_fw_to_dcm (bool, optional): [description]. Defaults to False.
+        fw (flywheel.Client): Valid Flywheel Client
+        source_acquisition (flywheel.Acquisition): Source Acquisition of files
+        dest_acquisition (flywheel.Acquisition): Destination Acquisition of files
+        map_fw_to_dcm (bool, optional): Not Used. Defaults to False.
     """
 
     # Get the source_acquisition so that the metadata are all there.

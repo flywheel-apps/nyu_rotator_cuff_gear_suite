@@ -234,6 +234,10 @@ def assess_completed_status(ohif_viewer, user_data):
     """
     Assess completion status from the ohif_viewer data and the user data
 
+    user_data is a selected subdictionary for the reader of the indicated project. If
+    that reader's id is not found as a key in the `read` subdictionary, then the first
+    user_id-key is used.
+
     Args:
         ohif_viewer (dict): All ohif-viewer data with measurements to check
         user_data (dict): All of the classification data for a particular reader
@@ -342,7 +346,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
-                    log.warn(
+                    log.warning(
                         "Assigned reader, %s, did not measure this case. "
                         "Most likely an administrator, %s, did.",
                         assignment["reader_id"],
@@ -388,7 +392,7 @@ def fill_session_attributes(fw_client, project_features, session):
 
 def fill_reader_case_data(fw_client, project_features, session):
     """
-    fill_reader_case_data [summary]
+    Acquire the status and data from each assigned case
 
     Args:
         fw_client (flywheel.Client): The active flywheel client

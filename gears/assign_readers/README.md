@@ -2,7 +2,7 @@
 
 This gear assigns readers to a new Flywheel project within the Readers group. Each reader is the sole read-write user of that project. Should that reader project already exist, the maximum cases may be changed.
 
-Administrative permission for Master Projects, the Readers group, and all reader projects is required for valid execution of this gear. Permissions to the Readers group may be granted to administrators of the project. To ensure that each project administrator can review a readers projects, they should be added as an admin to the Readers Group's Projects Template.
+Administrative permission for Master Projects, the Readers group, and all reader projects is required for successful execution of all gears in this suite. Permissions to the Readers group may be granted to administrators of the project. To ensure that each project administrator can review a readers projects, they should be added as an admin to the Readers Group's Projects Template.
 
 Successful execution of this gear is a prerequisite for assigning cases to individual readers (`assign-cases` gear).
 

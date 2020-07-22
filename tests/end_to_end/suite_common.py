@@ -53,7 +53,7 @@ def run_gear_w_config(
     time.sleep(2)
     job = get_job_from_id(fw_client, job_id)
 
-    while job.state not in ["complete", "failed"]:
+    while job.state not in ["complete", "failed", "cancelled"]:
         time.sleep(1)
         job = job.reload()
 

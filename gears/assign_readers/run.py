@@ -25,9 +25,7 @@ log = logging.getLogger(__name__)
 def main(context):
     try:
         fw_client = context.client
-        # I might want to check for this file in the source project
-        # https://gitlab.com/flywheel-io/product/frontend/ohif-viewer/snippets/1982265/raw
-        # download it if it is missing.
+
         verify_user_permissions(fw_client, context)
         check_for_duplicate_execution(fw_client)
 
@@ -73,6 +71,7 @@ def main(context):
 
 
 if __name__ == "__main__":
+
     with gear_toolkit_context.GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
