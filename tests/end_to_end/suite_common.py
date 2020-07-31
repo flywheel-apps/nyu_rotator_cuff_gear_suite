@@ -4,6 +4,19 @@ import time
 import flywheel
 
 
+class JobNotFoundError(Exception):
+    """
+    Exception raised when submitted Job is not found.
+
+    Args:
+        message (str): explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
 def init_gear(gear_name):
     fw_client = flywheel.Client()
     gear = fw_client.gears.find_one(f'gear.name="{gear_name}"')
@@ -24,9 +37,11 @@ def run_gear_w_config(
 
     config = gear_config["config"]
     inputs = gear_config["inputs"]
-
-    project = fw_client.get(inputs[list(inputs.keys())[0]]["id"])
-    session = project.sessions()[0]
+    if list(inputs.keys()):
+        project = fw_client.get(inputs[list(inputs.keys())[0]]["id"])
+        destination = project.sessions()[0]
+    elif gear_config.get("destination"):
+        destination = fw_client.get(gear_config["destination"]["id"])
 
     if clear_config:
         for key, value in config.items():
@@ -47,32 +62,51 @@ def run_gear_w_config(
     if replace_config:
         config = replace_config
 
-    job_id = gear.run(
-        config=config, analysis_label="E2E Test", inputs=inputs, destination=session
+    analysis_id = gear.run(
+        config=config, analysis_label="E2E Test", inputs=inputs, destination=destination
     )
-    time.sleep(2)
-    job = get_job_from_id(fw_client, job_id)
+
+    job = get_job_from_id(fw_client, analysis_id)
 
     while job.state not in ["complete", "failed", "cancelled"]:
-        time.sleep(1)
+        time.sleep(5)
         job = job.reload()
 
-    return job, session, config, inputs
+    return job, destination, config, inputs
 
 
-def get_job_from_id(fw_client, job_id):
-    job = fw_client.jobs.find_first("_id=" + job_id)
+def get_job_from_id(fw_client, analysis_id):
+    """
+    Get a flywheel job object from the job ID.
+
+    The job_id may need to be incremented.
+
+    Args:
+        fw_client (flywheel.Client): Valid Flywheel Client to active instance
+        analysis_id (str): Analysis id from gear.run
+
+    Raises:
+        Exception: If the job is not found after 5 tries
+
+    Returns:
+        flywheel.job: Active Flywheel Job object
+    """
+    analysis = fw_client.get_analysis(analysis_id)
+    if analysis:
+        return analysis.job
+
+    job = fw_client.jobs.find_first("_id=" + analysis_id)
+    if not job:
+        job_id_new = str(hex(int(analysis_id, 16) + 1))[2:]
+        job = fw_client.jobs.find_first("_id=" + job_id_new)
+
     if job:
         return job
-    else:
-        job_id = str(hex(int(job_id, 16) + 1))[2:]
 
-    job = fw_client.jobs.find_first("_id=" + job_id)
+    if not job:
+        raise JobNotFoundError("Job Not Found!")
 
-    if job:
-        return job
-    else:
-        raise Exception("Job Not Found!")
+    return job
 
 
 def purge_reader_group(fw_client):

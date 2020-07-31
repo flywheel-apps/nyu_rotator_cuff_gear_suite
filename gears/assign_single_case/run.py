@@ -16,8 +16,12 @@ from utils.check_jobs import (
     verify_user_permissions,
 )
 from utils.manage_cases import (
+    ExceededConstraintsError,
+    ExistingReaderCaseError,
     InvalidGroupError,
     InvalidLaunchContainerError,
+    InvalidReaderError,
+    MissingDataError,
     assign_single_case,
     check_valid_reader,
 )
@@ -44,7 +48,7 @@ def main(context):
             )
 
         if analysis.parents["session"]:
-            source_session = fw_client.get(analysis.parents["session"])
+            source_session = fw_client.get(analysis.parents["session"]).reload()
         else:
             raise InvalidLaunchContainerError(
                 'This gear can only be run at the "Session" level.'
@@ -69,9 +73,13 @@ def main(context):
         InsufficientPermissionsError,
         InvalidGroupError,
         InvalidLaunchContainerError,
+        InvalidReaderError,
+        ExistingReaderCaseError,
+        ExceededConstraintsError,
+        MissingDataError,
     ) as e:
         log.error(e.message)
-        log.fatal("Error executing assign-readers.",)
+        log.fatal("Error executing assign-single-case.",)
         return 1
     except Exception as e:
         log.exception(e,)
@@ -83,11 +91,7 @@ def main(context):
 
 
 if __name__ == "__main__":
-    # TODO: Eliminate for site-testing.
-    tst_dir = (
-        "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/Data/"
-        + "assign-single-case"
-    )
+
     with gear_toolkit_context.GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)

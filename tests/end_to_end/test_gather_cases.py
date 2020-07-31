@@ -64,6 +64,7 @@ def test_pipeline_injecting_assessment(tmpdir):
         "high_partial_tear",
         "full_tear",
         "full_contig",
+        "full_tear_imagePath_error",
     ]
 
     reader_case_data_csv = "reader_project_case_data.csv"
@@ -77,6 +78,9 @@ def test_pipeline_injecting_assessment(tmpdir):
             assignment = project_features["assignments"][j]
             dest_session = fw_client.get(assignment["dest_session"])
             dest_session.update_info(measurements[assessment_keys[j]])
+
+    # Inject imagePath error into the case of the last reader
+    dest_session.update_info(measurements[assessment_keys[5]])
 
     # Run the gather-cases gear
     fw_client, gather_cases_gear = init_gear("gather-cases")
@@ -123,7 +127,7 @@ def test_pipeline_injecting_assessment(tmpdir):
     # Ensure ohifViewer data was migrated to the correct session
     for i in reader_df.index:
         csv_assignments = ast.literal_eval(reader_df.assignments[i])
-        for j in range(5):
+        for j in range(len(csv_assignments)):
             print(reader_df.reader_id[i], assessment_keys[j])
             source_session = fw_client.get(
                 csv_assignments[j]["source_session"]
@@ -139,7 +143,12 @@ def test_pipeline_injecting_assessment(tmpdir):
                 read = measurements[assessment_keys[j]]["ohifViewer"]["read"]
                 assert assignment["read"] == read
             if assignment.get("measurements"):
-                measurement = measurements[assessment_keys[j]]["ohifViewer"][
+                # Test for the imagePath error
+                if reader_project_id == dest_session.parents["project"] and j == 4:
+                    k = 5
+                else:
+                    k = j
+                measurement = measurements[assessment_keys[k]]["ohifViewer"][
                     "measurements"
                 ]
                 assert assignment["measurements"] == measurement

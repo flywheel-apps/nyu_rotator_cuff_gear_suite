@@ -34,7 +34,9 @@ def test_valid_config():
     ]
 
     reader_role = [
-        perm.role_ids[0] for perm in permissions if perm.id == config["reader_email"]
+        perm.role_ids[0]
+        for perm in permissions
+        if perm.id == config["reader_email"].lower()
     ][0]
 
     expected_info = {
@@ -42,7 +44,7 @@ def test_valid_config():
     }
 
     assert len(group.projects()) == 1
-    assert config["reader_email"] in [perm.id for perm in permissions]
+    assert config["reader_email"].lower() in [perm.id for perm in permissions]
     assert reader_role in proj_roles
     assert project.info == expected_info
 
@@ -55,7 +57,7 @@ def test_invalid_config():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "invalid_config/config.json",
+        DATA_ROOT / "assign_readers/config_invalid.json",
         clear_input=True,
     )
 
@@ -120,7 +122,7 @@ def test_invalid_csv():
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "invalid_csv/config.json",
+        DATA_ROOT / "assign_readers/config_invalid_csv.json",
         clear_config=True,
     )
 

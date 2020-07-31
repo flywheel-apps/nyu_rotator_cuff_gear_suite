@@ -1,4 +1,6 @@
 import ast
+import json
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -22,157 +24,257 @@ def test_no_readers():
     assert job.state == "failed"
 
 
-"""
-What I want to do here is to test each of these different scenarios....
-                "Assign to Resolve Tie",
-                "Individual Assignment",
-                "Change Tear Classification",
-                "Change Measurement"
-With some "realesque" data.
+def test_valid_reader():
 
-Which means I need to contrive each situation.  And then tear it down.
-
-But first... that Labeling of "Complete" over in gather_cases
-"""
-
-
-def test_valid_config(tmpdir):
+    # assign reader
     fw_client, assign_readers_gear = init_gear("assign-readers")
 
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config2/config.json",
-        clear_config=True,
+        DATA_ROOT / "assign_readers/config.json",
+        clear_input=True,
     )
 
-    assert job.state == "complete"
-
-    fw_client, assign_cases_gear = init_gear("assign-cases")
-
-    job, session, _, _ = run_gear_w_config(
+    # Assign to valid reader
+    fw_client, assign_single_case_gear = init_gear("assign-single-case")
+    job, _, _, _ = run_gear_w_config(
         fw_client,
-        assign_cases_gear,
-        DATA_ROOT / "config4/config.json",
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config.json",
         clear_input=True,
     )
 
     assert job.state == "complete"
 
-    session = session.reload()
-    analysis = [
-        analysis for analysis in session.analyses if analysis.job.id == job.id
-    ].pop()
+    # Assign to invalid reader
+    config = {
+        "reader_email": "joshuajacobs@flywheel.io",
+        "assignment_reason": "Individual Assignment",
+    }
 
-    for an_file in analysis.files:
-        analysis.download_file(an_file.name, tmpdir / an_file.name)
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config.json",
+        clear_input=True,
+        replace_config=config,
+    )
 
-    # Test exported_data.csv
-    exported_df = pd.read_csv(tmpdir / "exported_data.csv")
-    for i in exported_df.index:
-        assert fw_client.lookup(exported_df.loc[i, "export_path"])
-
-    # Test reader_project_case_data.csv
-    reader_df = pd.read_csv(tmpdir / "reader_project_case_data.csv")
-    for i in reader_df.index:
-        reader_project = fw_client.get(reader_df.id[i]).reload()
-        assert reader_project.info["project_features"][
-            "assignments"
-        ] == ast.literal_eval(reader_df.assignments[i])
-        assert reader_df.max_cases[i] >= reader_df.num_assignments[i]
-
-    # Test master_project_case_data.csv
-    cases_df = pd.read_csv(tmpdir / "master_project_case_data.csv")
-    for i in cases_df.index:
-        case_session = fw_client.get(cases_df.id[i]).reload()
-        assert case_session.info["session_features"]["assignments"] == ast.literal_eval(
-            cases_df.assignments[i]
-        )
-        assert cases_df.case_coverage[i] >= cases_df.assigned_count[i]
-
-    assert cases_df.assigned_count.sum() == reader_df.num_assignments.sum()
+    assert job.state == "failed"
 
     # Cleanup
     purge_reader_group(fw_client)
 
 
-def test_add_new_readers(tmpdir):
+def assign_readers_max_cases(tmpdir):
+    fw_client, assign_readers_gear = init_gear("assign-readers")
+
+    _, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_readers_gear,
+        DATA_ROOT / "assign_readers/config.json",
+        clear_config=True,
+    )
+
+    fw_client, assign_cases_gear = init_gear("assign-cases")
+
+    job, destination, _, _ = run_gear_w_config(
+        fw_client,
+        assign_cases_gear,
+        DATA_ROOT / "assign_cases/config.json",
+        clear_input=True,
+    )
+    # Inject assessments
+
+    # Wait for the cases to be indexed
+    time.sleep(30)
+
+    # inject assessments into the first case of the three readers
+    destination = destination.reload()
+    analysis = [
+        analysis for analysis in destination.analyses if analysis.job.id == job.id
+    ].pop()
+
+    measurements = json.load(open(DATA_ROOT / "gather_cases/measurements.json", "r"))
+    assessment_keys = [
+        "no_tear",
+        "low_partial_tear",
+        "high_partial_tear",
+        "full_tear",
+        "full_contig",
+    ]
+
+    reader_case_data_csv = "reader_project_case_data.csv"
+    analysis.download_file(reader_case_data_csv, tmpdir / reader_case_data_csv)
+
+    reader_df = pd.read_csv(tmpdir / reader_case_data_csv)
+    for i in reader_df.index:
+        reader_project = fw_client.get(reader_df.id[i]).reload()
+        project_features = reader_project.info["project_features"]
+        for j in range(5):
+            assignment = project_features["assignments"][j]
+            dest_session = fw_client.get(assignment["dest_session"])
+            dest_session.update_info(measurements[assessment_keys[j]])
+
+
+def test_indiv_assignment(tmpdir):
+    assign_readers_max_cases(tmpdir)
+
+    # assign single reader
     fw_client, assign_readers_gear = init_gear("assign-readers")
 
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config2/config.json",
-        clear_config=True,
+        DATA_ROOT / "assign_readers/config.json",
+        clear_input=True,
     )
-
     assert job.state == "complete"
 
-    _, assign_cases_gear = init_gear("assign-cases")
-
+    # assign indiv assignment to that reader
+    fw_client, assign_single_case_gear = init_gear("assign-single-case")
     job, _, _, _ = run_gear_w_config(
         fw_client,
-        assign_cases_gear,
-        DATA_ROOT / "config4/config.json",
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config.json",
         clear_input=True,
     )
 
     assert job.state == "complete"
 
-    # Assign more readers to projects
+    # attempt to re-assign the same session
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config.json",
+        clear_input=True,
+    )
+
+    assert job.state == "failed"
+
+    # attempt to assign num_cases=case_coverage to new reader
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_full_case.json",
+        clear_input=True,
+    )
+    assert job.state == "failed"
+
+    # attempt to assign case to num_cases=max_cases of full reader
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_full_reader.json",
+        clear_input=True,
+    )
+
+    assert job.state == "failed"
+
+    # Cleanup
+    purge_reader_group(fw_client)
+
+
+def test_resolve_tie(tmpdir):
+    assign_readers_max_cases(tmpdir)
+
+    # assign single reader
+    fw_client, assign_readers_gear = init_gear("assign-readers")
+
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "config5/config.json",
-        clear_config=True,
+        DATA_ROOT / "assign_readers/config.json",
+        clear_input=True,
     )
 
-    assert job.state == "complete"
-
-    # Assign cases to those readers
-    job, session, _, _ = run_gear_w_config(
+    fw_client, assign_single_case_gear = init_gear("assign-single-case")
+    # Assign assigned_cases=3=case_coverage to new reader.
+    job, _, _, _ = run_gear_w_config(
         fw_client,
-        assign_cases_gear,
-        DATA_ROOT / "config4/config.json",
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_tie_breaker_1.json",
         clear_input=True,
     )
 
     assert job.state == "complete"
 
-    session = session.reload()
-    analysis = [
-        analysis for analysis in session.analyses if analysis.job.id == job.id
-    ].pop()
+    # Assign assigned_cases=4=case_coverage to new reader.
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_readers_gear,
+        DATA_ROOT / "assign_readers/config_nancy.json",
+        clear_input=True,
+    )
 
-    for an_file in analysis.files:
-        analysis.download_file(an_file.name, tmpdir / an_file.name)
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_tie_breaker_2.json",
+        clear_input=True,
+    )
 
-    # Test exported_data.csv
-    exported_df = pd.read_csv(tmpdir / "exported_data.csv")
-    for i in exported_df.index:
-        assert fw_client.lookup(exported_df.loc[i, "export_path"])
+    assert job.state == "failed"
 
-    # Test reader_project_case_data.csv
-    reader_df = pd.read_csv(tmpdir / "reader_project_case_data.csv")
-    for i in reader_df.index:
-        reader_project = fw_client.get(reader_df.id[i]).reload()
-        assert (
-            reader_project.info["project_features"]["assignments"]
-            == reader_df.assignments[i]
-        )
-        assert reader_df.max_cases[i] >= reader_df.num_assignments[i]
+    # Assign assigned_cases < 3 to a new reader
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_tie_breaker_3.json",
+        clear_input=True,
+    )
 
-    # Test master_project_case_data.csv
-    cases_df = pd.read_csv(tmpdir / "master_project_case_data.csv")
-    for i in cases_df.index:
-        case_session = fw_client.get(cases_df.id[i])
-        assert (
-            case_session.info["session_features"]["assignments"]
-            == cases_df.assignments[i]
-        )
-        assert cases_df.case_coverage[i] >= cases_df.assigned_count[i]
+    assert job.state == "failed"
 
-    assert cases_df.assigned_count.sum() == reader_df.num_assignments.sum()
+    # Cleanup
+    purge_reader_group(fw_client)
+
+
+def test_apply_consensus_assignment(tmpdir):
+    assign_readers_max_cases(tmpdir)
+
+    fw_client, assign_single_case_gear = init_gear("assign-single-case")
+    # test valid and invalid application of consensus assignment
+
+    # Apply existing consensus assessment to particular reader
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_consensus_1.json",
+        clear_input=True,
+    )
+
+    assert job.state == "complete"
+
+    # Attempt to apply non-existent consensus assessment to particular reader
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_consensus_2.json",
+        clear_input=True,
+    )
+
+    assert job.state == "failed"
+
+    # Attempt to apply consensus assessment to a reader without the indicated case
+    fw_client, assign_readers_gear = init_gear("assign-readers")
+
+    _, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_readers_gear,
+        DATA_ROOT / "assign_readers/config.json",
+        clear_input=True,
+    )
+
+    job, _, _, _ = run_gear_w_config(
+        fw_client,
+        assign_single_case_gear,
+        DATA_ROOT / "assign_single_case/config_consensus_3.json",
+        clear_input=True,
+    )
+
+    assert job.state == "failed"
 
     # Cleanup
     purge_reader_group(fw_client)

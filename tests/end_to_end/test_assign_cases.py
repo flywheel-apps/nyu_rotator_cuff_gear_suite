@@ -109,7 +109,7 @@ def test_add_new_readers(tmpdir):
     job, _, _, _ = run_gear_w_config(
         fw_client,
         assign_readers_gear,
-        DATA_ROOT / "assign_more_readers/config.json",
+        DATA_ROOT / "assign_readers/config_more_readers.json",
         clear_config=True,
     )
 

@@ -1,9 +1,9 @@
 {
     "config": {
-        "reader_email": "georgeJetson@gmail.com",
-        "reader_firstname": "George",
-        "reader_lastname": "Jetson",
-        "max_cases": 10
+        "reader_email": "nancyraihn@flywheel.io",
+        "reader_firstname": "Nancy",
+        "reader_lastname": "Raihn",
+        "max_cases": 5
     },
     "inputs": {
         "reader_csv": {

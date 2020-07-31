@@ -90,10 +90,6 @@ def set_session_features(session, case_coverage):
         else {"case_coverage": case_coverage, "assignments": [], "assigned_count": 0}
     )
 
-    # If the session has features, remove them for now.  Restore them after export
-    if session.info.get("session_features"):
-        session.delete_info("session_features")
-
     return session_features
 
 

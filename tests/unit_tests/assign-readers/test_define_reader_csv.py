@@ -1,3 +1,8 @@
+"""
+This set of unit tests evaluate the proper functioning of the "define_reader_csv"
+function.  This function takes a gear context as input. Therefore, the configuration
+and input files are necessary through a gear directory.
+"""
 import json
 import shutil
 import tempfile
@@ -23,6 +28,29 @@ def create_gear_config(email=None, firstname=None, lastname=None, max_cases=30):
     config["max_cases"] = max_cases
 
     return config
+
+
+def create_gear_dir(tmp_folder):
+    gear_dir = Path(tmp_folder) / "gear"
+    shutil.copytree(DATA_ROOT / "assign_readers/unit_test_csv", gear_dir)
+    config_tochange = json.load(open(gear_dir / "config.json", "r"))
+    input_path = config_tochange["inputs"]["reader_csv"]["location"]["path"]
+    input_path = input_path.replace("DATA_DIR", str(gear_dir))
+    config_tochange["inputs"]["reader_csv"]["location"]["path"] = input_path
+
+    json.dump(config_tochange, open(gear_dir / "config.json", "w"))
+
+    return gear_dir
+
+
+def create_invalid_csv(context):
+    input_path = context.get_input_path("reader_csv")
+    # create an error in the CSV file by altering one of the column names
+    readers_df = pd.read_csv(input_path)
+    columns = list(readers_df.columns)
+    columns[0] = "sbemail"
+    readers_df.columns = columns
+    readers_df.to_csv(input_path, index=False)
 
 
 def test_valid_config():
@@ -135,19 +163,6 @@ def test_invalid_config():
                 )
 
 
-def create_gear_dir(tmp_folder):
-    gear_dir = Path(tmp_folder) / "gear"
-    shutil.copytree(DATA_ROOT / "assign_readers_csv", gear_dir)
-    config_tochange = json.load(open(gear_dir / "config.json", "r"))
-    input_path = config_tochange["inputs"]["reader_csv"]["location"]["path"]
-    input_path = input_path.replace("DATA_DIR", str(gear_dir))
-    config_tochange["inputs"]["reader_csv"]["location"]["path"] = input_path
-
-    json.dump(config_tochange, open(gear_dir / "config.json", "w"))
-
-    return gear_dir
-
-
 def test_valid_user_csv(tmpdir):
     gear_dir = create_gear_dir(tmpdir)
     with gear_toolkit_context.GearToolkitContext(
@@ -221,21 +236,12 @@ def test_valid_csv_with_duplicate_config(tmpdir):
         )
 
         source_df = pd.read_csv(context.get_input_path("reader_csv"))
+        source_df.email = source_df.email.str.lower()
         # Update duplicate row with max_cases
         source_df.max_cases[2] = 11
 
         dest_df = pd.read_csv(reader_csv_path)
         assert source_df.equals(dest_df)
-
-
-def create_invalid_csv(context):
-    input_path = context.get_input_path("reader_csv")
-    # create an error in the CSV file by altering one of the column names
-    readers_df = pd.read_csv(input_path)
-    columns = list(readers_df.columns)
-    columns[0] = "sbemail"
-    readers_df.columns = columns
-    readers_df.to_csv(input_path, index=False)
 
 
 def test_invalid_reader_csv(caplog):
@@ -292,6 +298,7 @@ def test_valid_csv_with_invalid_config(caplog, tmpdir):
             == gear_dir / "work" / context.get_input("reader_csv")["location"]["name"]
         )
         source_df = pd.read_csv(context.get_input_path("reader_csv"))
+        source_df.email = source_df.email.str.lower()
         dest_df = pd.read_csv(reader_csv_path)
         assert source_df.equals(dest_df)
 
@@ -315,8 +322,8 @@ def test_invalid_csv_with_valid_config(caplog, tmpdir):
 
         exp_messages = [
             'The csv-file "users-short.csv" did not have the '
-            'required columns("email", "first_name", "last_name", "max_cases")'
-            ".Proceeding without reader CSV."
+            'required columns("email", "first_name", "last_name", "max_cases").'
+            "Proceeding without reader CSV."
         ]
 
         for i in range(len(caplog.records)):

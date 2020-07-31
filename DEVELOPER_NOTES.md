@@ -1,4 +1,4 @@
-# assign cases
+# NYU/Siemens Rotator Cuff Tear Project
 
 Here are some particular notes related to development and maintenance of the `assign-readers`, `assign-cases`, and `gather-case-data` gears.
 
@@ -128,3 +128,21 @@ For the reader's project:
 ```
 
 This records the assignments for each reader and the maximum number of assigments (**max_cases**) that they will assess.
+
+## Testing
+
+The tests have been constructed in the `test` directory.  
+
+### Unit Tests
+
+Unit tests, where possible, have been created within the `test/unit_test/<gear>` directories. These run completly without use of the Flywheel SDK and a connection to an active Flywheel Instance
+
+### End-to-End Tests
+
+End-to-End tests are in `tests/end_to_end/` for each gear.  These rely heavily on an existing "Master Project".  The indicated "Master Project" must exist in the instance that the developer/tester is logged into (`fw login <API KEY>`).
+
+### Data
+
+Configuration and input files for every test reside in `tests/data/<gear>`. These currently rely upon specific `id`s related to projects, sessions, and acquisitions.
+
+TODO: Make these less dependent on the specific project, session, and acquisition `id`s of a particular instance. Perhaps it could have a test data component that is loaded into an instance and the particular `id`s be populated for the testing.

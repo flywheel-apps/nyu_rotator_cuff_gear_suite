@@ -1,6 +1,6 @@
 # assign-single-case
 
-The `assign-single-case` gear is used for the assignment or reassignment of a single case to a single reader.  With a new assignment, the case data is copied to a reader project for a new assessment of that case.  In this scenario, the **case_coverage** is incremented to allow for the break of a tie.  For a reassignment, the reader’s current assessment is set to incomplete and the user is notified for the reason (e. g. they have a minority classification).
+The `assign-single-case` gear is used for the assignment or reassignment of a single case to a single reader.  With a new assignment, the case data is copied to a reader project for a new assessment of that case. The **case_coverage** may be incremented to allow for the break of a tie.  For a reassignment, a consensus assessment is copied over the case in the reader's project, and the reader’s current assessment is set to incomplete. The project administrators are required to communicate to the reader that action is required.
 
 The `assign-single-case` gear distributes a single case from a populated "Master Project" to a reader project given the following constraints: Each reader will be limited to a maximum number of cases (**max_cases**) as defined previously by `assign-readers`. On assignment, each case along with its acquisitions, files, and metadata is copied to a reader's project for assessment by that reader.
 
@@ -20,16 +20,47 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 The `assign-single-case` gear assigns or modifies the assignment of a single case. A new assignment is constrained by the availability of the specified reader (i.e. the readers number of assignments is less than their maximum number of cases). On execution, the gear distributes the specified case to a specified reader.
 
-NOTE: This gear assumes that you are running it from within the "Master Project".  Attempting to execute this gear from within a reader project will fail.
+### Requirements
+
+For each of the **assignment_reasons** listed below the following requirements must be met for successful execution of this gear:
+
+* The **reader_email** must be a valid Flywheel user and have an existing reader project
+* **Assign to Resolve Tie** Requires:
+
+  * The case does not exist in the destination reader project.
+  * Assignment count for the current case is the case coverage of 3
+
+    (**assignment_count**==**case_coverage**==3)
+
+  * The number of cases assigned to a reader is less than their **max_cases**.
+
+  NOTE: Both **assignment_count** and **case_coverage** will be incremented to 4. This is the greatest value it can have.
+
+* **Individual Assignment** Requires:
+
+  * The case does not exist in the destination reader project.
+  * Assignment count for the current case is the case coverage of 3
+
+    (**assignment_count**<**case_coverage**==3)
+
+  * The number of cases assigned to a reader is less than their **max_cases**.
+
+* **Apply Consensus Assessment from Source**:
+
+  * The case exists in the destination reader project.
+  * A consensus assessment exists in the source case.
+
+  NOTE: If the assessment for the case does not yet exist in the reader project, the consensus assessment is used.
+
+NOTE: This gear assumes that you are running it from within a session contained in a "Master Project".  Attempting to execute this gear from within a reader project or at the project level will fail.
 
 ### Gear Configuration
 
 * **reader_email** (required): The email of the reader to assign the specific case.
 * **assignment_reason** (required): A selected reason for the new assignment or reassignment. (Default *Assign to Resolve Tie*).  
-  * **Assign to Resolve Tie**: Assign this case to the specified reader. Increases **case_coverage**, if require.
-  * **Individual Assignment**: Assign this case to the specified reader. The gear will fail if constrained by **case_coverage**.
-  * **Change Tear Classification**: Removes **Completed** status from case and allows reader to make changes to tear type and measurements.
-  * **Change Measurement**: Removes **Completed** status from case and allows reader to make changes to measurements only.
+  * **Assign to Resolve Tie**: Assign this case to the specified reader. Increases **case_coverage** up to 4, if required.
+  * **Individual Assignment**: Assign this case to the specified reader.
+  * **Apply Consensus Assessment from Source**: Removes **Completed** status from case, copies the consensus assessment from the source case to the reader case, and requires the reader to complete all required measurements.
 
 ### Expected Output
 

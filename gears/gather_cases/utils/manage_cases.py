@@ -72,7 +72,7 @@ CASE_ASSESSMENT_REC = {
     "supraspinatus_mediolateral_RAS_Start": None,
     "supraspinatus_mediolateral_RAS_End": None,
     "supraspinatus_mediolateral_ijk_to_RAS": None,
-    "additionalNotes": None,
+    "additionalNotes": "",
 }
 
 
@@ -193,16 +193,30 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     # (0008, 103E) Series Description
     SeriesDescription = slice_instance["0008103E"]["Value"][0]
 
-    voxel_start[:3] = np.array(
-        [
-            Length["handles"]["start"]["x"],
-            Length["handles"]["start"]["y"],
-            InstanceNumber,
-        ]
-    ).reshape((3, 1))
-    voxel_end[:3] = np.array(
-        [Length["handles"]["end"]["x"], Length["handles"]["end"]["y"], InstanceNumber]
-    ).reshape((3, 1))
+    # Preferred offset
+    offset = np.array([0, 0, 0]).reshape((3, 1))
+
+    voxel_start[:3] = (
+        np.array(
+            [
+                Length["handles"]["start"]["x"],
+                Length["handles"]["start"]["y"],
+                InstanceNumber,
+            ]
+        ).reshape((3, 1))
+        - offset
+    )
+
+    voxel_end[:3] = (
+        np.array(
+            [
+                Length["handles"]["end"]["x"],
+                Length["handles"]["end"]["y"],
+                InstanceNumber,
+            ]
+        ).reshape((3, 1))
+        - offset
+    )
 
     # Create third column from the cross-product of the first two
     ijk_RAS_matrix[:3, 0] = ImageOrientation[:3]
@@ -245,46 +259,61 @@ def assess_completed_status(ohif_viewer, user_data):
     Returns:
         boolean: Completion Status (True/False)
     """
-    if not user_data:
-        completed_status = False
-    else:
-        completed_status = True
-        for tendon in ["infraspinatus", "subscapularis", "supraspinatus"]:
-            if user_data[tendon + "Tear"] in [
-                "none",
-                "lowPartial",
-                "highPartial",
-            ]:
-                completed_status &= True
-            elif user_data[tendon + "Tear"] == "full":
-                if not (
-                    user_data.get(tendon + "Retraction")
-                    and user_data[tendon + "Retraction"]
-                    in ["minimal", "humeral", "glenoid"]
-                ):
-                    completed_status &= False
+    try:
+        if not user_data:
+            completed_status = False
+            error_msg = None
+        else:
+            completed_status = True
+            for tendon in ["infraspinatus", "supraspinatus", "subscapularis"]:
+                if user_data[tendon + "Tear"] in [
+                    "none",
+                    "lowPartial",
+                    "highPartial",
+                ]:
+                    completed_status &= True
+                elif user_data[tendon + "Tear"] == "full":
+                    if not (
+                        user_data.get(tendon + "Retraction")
+                        and user_data[tendon + "Retraction"]
+                        in ["minimal", "humeral", "glenoid"]
+                    ):
+                        completed_status &= False
 
-                if ohif_viewer.get("measurements") and ohif_viewer["measurements"].get(
-                    "Length"
-                ):
-                    Lengths = ohif_viewer["measurements"].get("Length")
-                    tendon_measures = [
-                        tendon_meas
-                        for tendon_meas in Lengths
-                        if tendon in tendon_meas["location"].lower()
-                    ]
-                    if len(tendon_measures) != 2:
+                    if ohif_viewer.get("measurements") and ohif_viewer[
+                        "measurements"
+                    ].get("Length"):
+                        Lengths = ohif_viewer["measurements"].get("Length")
+                        tendon_measures = [
+                            tendon_meas
+                            for tendon_meas in Lengths
+                            if tendon in tendon_meas["location"].lower()
+                        ]
+                        if len(tendon_measures) != 2:
+                            completed_status &= False
+                    else:
+                        completed_status &= False
+                elif user_data[tendon + "Tear"] == "fullContiguous":
+                    if user_data["supraspinatusTear"] == "full":
+                        completed_status &= True
+                    else:
                         completed_status &= False
                 else:
                     completed_status &= False
-            elif user_data[tendon + "Tear"] == "fullContiguous":
-                if user_data["supraspinatusTear"] == "full":
-                    completed_status &= True
-                else:
-                    completed_status &= False
-            else:
-                completed_status &= False
-    return completed_status
+                error_msg = None
+    except Exception as e:
+        completed_status = False
+        log.error(
+            "There was an error in the case assessment data. "
+            "Please examine and correct."
+        )
+        log.exception(e,)
+        error_msg = (
+            "ERROR: An error occurred in the case assessment. "
+            "Please examine and correct."
+        )
+
+    return completed_status, error_msg
 
 
 def fill_session_attributes(fw_client, project_features, session):
@@ -363,9 +392,11 @@ def fill_session_attributes(fw_client, project_features, session):
             # 1. Classifed as noTear, lowGradePartialTear, highGradePartialTear w/o
             #    measurements
             # 2. Classified as fullTear having 2 measurements for the indicated tendon
-            completed_status = assess_completed_status(ohif_viewer, user_data)
+            completed_status, error_msg = assess_completed_status(
+                ohif_viewer, user_data
+            )
 
-            if completed_status:
+            if completed_status and not error_msg:
                 assignment["status"] = "Completed"
                 session_attributes["completed"] += 1
                 ohif_viewer["read"][reader_id]["readOnly"] = True
@@ -432,6 +463,8 @@ def fill_reader_case_data(fw_client, project_features, session):
         ohif_viewer = assigned_session_info.get("ohifViewer")
         user_data = []
         if ohif_viewer:
+            completed_status, error_msg = (False, None)
+
             if ohif_viewer.get("read"):
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
@@ -440,37 +473,67 @@ def fill_reader_case_data(fw_client, project_features, session):
                 user_data["completed_timestamp"] = ohif_viewer["read"][reader_id][
                     "date"
                 ]
+                completed_status, error_msg = assess_completed_status(
+                    ohif_viewer, user_data
+                )
                 case_assignment_status.update(user_data)
 
-            completed_status = assess_completed_status(ohif_viewer, user_data)
+                # Eliminate carriage return and present error message
+                additional_notes = case_assignment_status["additionalNotes"]
+                additional_notes = additional_notes.replace("\n", " ")
+                if error_msg:
+                    additional_notes += error_msg
+                case_assignment_status["additionalNotes"] = additional_notes
+
             case_assignment_status.update({"completed": completed_status})
 
-            if ohif_viewer.get("measurements"):
-                if ohif_viewer["measurements"].get("Length"):
-                    for Length in ohif_viewer["measurements"]["Length"]:
-                        prefix = Length["location"].lower().replace(" - ", "_")
-                        case_assignment_status[prefix + "_Length"] = Length["length"]
-                        (
-                            voxel_start,
-                            voxel_end,
-                            ras_start,
-                            ras_end,
-                            ijk_RAS_matrix,
-                            seriesDescription,
-                        ) = io_proxy_acquire_coords(
-                            fw_client, assignment["project_id"], Length
-                        )
-                        case_assignment_status[
-                            prefix + "_seriesDescription"
-                        ] = seriesDescription
-                        case_assignment_status[prefix + "_seriesInstanceUid"] = Length[
-                            "seriesInstanceUid"
-                        ]
-                        case_assignment_status[prefix + "_Voxel_Start"] = voxel_start
-                        case_assignment_status[prefix + "_Voxel_End"] = voxel_end
-                        case_assignment_status[prefix + "_RAS_Start"] = ras_start
-                        case_assignment_status[prefix + "_RAS_End"] = ras_end
-                        case_assignment_status[prefix + "_ijk_to_RAS"] = ijk_RAS_matrix
+            if ohif_viewer.get("measurements") and not error_msg:
+                try:
+                    if ohif_viewer["measurements"].get("Length"):
+                        for Length in ohif_viewer["measurements"]["Length"]:
+                            prefix = Length["location"].lower().replace(" - ", "_")
+                            case_assignment_status[prefix + "_Length"] = Length[
+                                "length"
+                            ]
+                            (
+                                voxel_start,
+                                voxel_end,
+                                ras_start,
+                                ras_end,
+                                ijk_RAS_matrix,
+                                seriesDescription,
+                            ) = io_proxy_acquire_coords(
+                                fw_client, assignment["project_id"], Length
+                            )
+                            case_assignment_status[
+                                prefix + "_seriesDescription"
+                            ] = seriesDescription
+                            case_assignment_status[
+                                prefix + "_seriesInstanceUid"
+                            ] = Length["seriesInstanceUid"]
+                            case_assignment_status[
+                                prefix + "_Voxel_Start"
+                            ] = voxel_start
+                            case_assignment_status[prefix + "_Voxel_End"] = voxel_end
+                            case_assignment_status[prefix + "_RAS_Start"] = ras_start
+                            case_assignment_status[prefix + "_RAS_End"] = ras_end
+                            case_assignment_status[
+                                prefix + "_ijk_to_RAS"
+                            ] = ijk_RAS_matrix
+                except Exception as e:
+                    completed_status = False
+                    error_msg = (
+                        "ERROR: An error occurred in the case assessment. "
+                        "Please examine and correct."
+                    )
+                    log.error(
+                        "There was an error in the case assessment data. "
+                        "Please examine and correct."
+                    )
+                    log.exception(e,)
+
+                    case_assignment_status["completed"] = completed_status
+                    case_assignment_status["additionalNotes"] += error_msg
 
         case_assignments.append(case_assignment_status)
 
