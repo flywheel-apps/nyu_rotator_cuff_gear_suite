@@ -86,27 +86,17 @@ def get_job_from_id(fw_client, analysis_id):
         analysis_id (str): Analysis id from gear.run
 
     Raises:
-        Exception: If the job is not found after 5 tries
+        Exception: If the job is not found
 
     Returns:
         flywheel.job: Active Flywheel Job object
     """
     analysis = fw_client.get_analysis(analysis_id)
-    if analysis:
-        return analysis.job
 
-    job = fw_client.jobs.find_first("_id=" + analysis_id)
-    if not job:
-        job_id_new = str(hex(int(analysis_id, 16) + 1))[2:]
-        job = fw_client.jobs.find_first("_id=" + job_id_new)
-
-    if job:
-        return job
-
-    if not job:
+    if not analysis:
         raise JobNotFoundError("Job Not Found!")
 
-    return job
+    return analysis.job
 
 
 def purge_reader_group(fw_client):

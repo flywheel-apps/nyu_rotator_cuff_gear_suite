@@ -9,7 +9,6 @@ Successful execution of this gear is a prerequisite for assigning cases to indiv
 Executing the `assign-readers` gear ensures that each reader specified
 
 * is a Flywheel user
-* has *read-write* permissions to the "Readers" group.
 * has a reader-project created in the "Readers" group.
 * has **max_cases** set according to the reader's entry. If the reader has an existing **max_cases** setting, this is resolved by:
   * If the current **max_cases** value is less than the proposed **max_cases**, update to the proposed **max_cases** value
