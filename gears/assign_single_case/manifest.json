@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_single_case",
     "cite": "",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "custom": {
-        "docker-image": "flywheel/assign-single-case:0.1.1",
+        "docker-image": "flywheel/assign-single-case:0.1.2",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-single-case:0.1.1"
+            "image": "flywheel/assign-single-case:0.1.2"
         }
     },
     "inputs": {
@@ -34,8 +34,7 @@
             "enum": [
                 "Assign to Resolve Tie",
                 "Individual Assignment",
-                "Change Tear Classification",
-                "Change Measurement"
+                "Apply Consensus Assessment from Source"
             ]
         }
     },
