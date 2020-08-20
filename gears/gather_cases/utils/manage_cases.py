@@ -192,7 +192,6 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         api_key, api_key_prefix, project_id, study, series, instance
     )
 
-
     try:
         # find first instance for the first ImagePositionPatient as image origin
         first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
@@ -220,7 +219,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
             "\t(0020, 0037) Image Orientation (Patient),\n"
             "\t(0020, 0032) Image Position (Patient)\n"
             "Please replace the DICOM Series with a valid copy."
-        ):
+        )
 
     DistanceBetweenSlices = distance.euclidean(
         first_inst["00200032"]["Value"], second_inst["00200032"]["Value"]
