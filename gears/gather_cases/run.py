@@ -13,6 +13,7 @@ from utils.check_jobs import (
 )
 from utils.manage_cases import (
     InvalidGroupError,
+    MissingDICOMTagError,
     UninitializedGroupError,
     gather_case_data_from_readers,
 )
@@ -67,6 +68,7 @@ def main(context):
         InsufficientPermissionsError,
         InvalidGroupError,
         UninitializedGroupError,
+        MissingDICOMTagError,
     ) as e:
         log.error(e.message)
         log.fatal("Error executing assign-readers.",)
@@ -81,7 +83,8 @@ def main(context):
 
 
 if __name__ == "__main__":
-    with gear_toolkit_context.GearToolkitContext() as gear_context:
+    tst = "/home/joshuajacobs/Projects/2020.03.13.NYU.Tear_Assessment/Data/gather-cases-0.0.1-dev-e_5ed03221dd4e560535c2ce65"
+    with gear_toolkit_context.GearToolkitContext(tst) as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+from scipy.spatial import distance
 
 log = logging.getLogger(__name__)
 
@@ -102,6 +103,19 @@ class UninitializedGroupError(Exception):
         self.message = message
 
 
+class MissingDICOMTagError(Exception):
+    """Exception raised for an unavailable tag in the dicom file.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
 def io_proxy_wado(
     api_key, api_key_prefix, project_id, study=None, series=None, instance=None
 ):
@@ -173,26 +187,44 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
 
     instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
 
-    # find first instance for the first ImagePosition as image origin
-    first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
-    # (0020, 0032) Image Position (Patient)
-    ImagePosition = first_inst["00200032"]["Value"]
-
     # The rest of the tags come from the measured slice
     slice_instance = io_proxy_wado(
         api_key, api_key_prefix, project_id, study, series, instance
     )
-    # (0020, 0037) Image Orientation (Patient)
-    ImageOrientation = slice_instance["00200037"]["Value"]
-    # (0028, 0030) Pixel Spacing
-    PixelSpacing = slice_instance["00280030"]["Value"]
-    # (0018, 0088) Spacing Between Slices
-    SpacingBetweenSlices = slice_instance["00180088"]["Value"][0]
-    # (0020, 0013) Instance Number
-    InstanceNumber = slice_instance["00200013"]["Value"][0]
-    # (0008, 103E) Series Description
-    SeriesDescription = slice_instance["0008103E"]["Value"][0]
 
+
+    try:
+        # find first instance for the first ImagePositionPatient as image origin
+        first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
+        second_inst = [i for i in instances if i["00200013"]["Value"] == [2]][0]
+
+        # (0020, 0032) Image Position (Patient)
+        ImagePosition = first_inst["00200032"]["Value"]
+
+        # (0020, 0037) Image Orientation (Patient)
+        ImageOrientation = slice_instance["00200037"]["Value"]
+        # (0028, 0030) Pixel Spacing
+        PixelSpacing = slice_instance["00280030"]["Value"]
+
+        # (0020, 0013) Instance Number
+        InstanceNumber = slice_instance["00200013"]["Value"][0]
+        # (0008, 103E) Series Description
+        SeriesDescription = slice_instance["0008103E"]["Value"][0]
+    except Exception as e:
+        log.exception(e)
+        raise MissingDICOMTagError(
+            "One of the following required tags is missing from the DICOM Series:\n"
+            "\t(0008, 103E) Series Description,\n"
+            "\t(0020, 0013) Instance Number,\n"
+            "\t(0028, 0030) Pixel Spacing,\n"
+            "\t(0020, 0037) Image Orientation (Patient),\n"
+            "\t(0020, 0032) Image Position (Patient)\n"
+            "Please replace the DICOM Series with a valid copy."
+        ):
+
+    DistanceBetweenSlices = distance.euclidean(
+        first_inst["00200032"]["Value"], second_inst["00200032"]["Value"]
+    )
     # Preferred offset
     offset = np.array([0, 0, 0]).reshape((3, 1))
 
@@ -227,7 +259,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     # Adjust for the direction of the voxel coordinate system
     ijk_RAS_matrix = np.matmul(np.diag([-1, -1, 1, 1]), ijk_RAS_matrix)
 
-    spacing = np.diag([PixelSpacing[0], PixelSpacing[1], SpacingBetweenSlices, 1])
+    spacing = np.diag([PixelSpacing[0], PixelSpacing[1], DistanceBetweenSlices, 1])
 
     ijk_RAS_matrix = np.matmul(ijk_RAS_matrix, spacing)
 
