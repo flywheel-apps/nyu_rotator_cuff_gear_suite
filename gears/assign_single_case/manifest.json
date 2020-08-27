@@ -33,8 +33,7 @@
             "type": "string",
             "enum": [
                 "Assign to Resolve Tie",
-                "Individual Assignment",
-                "Apply Consensus Assessment from Source"
+                "Individual Assignment"
             ]
         }
     },

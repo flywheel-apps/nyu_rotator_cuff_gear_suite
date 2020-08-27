@@ -45,13 +45,6 @@ For each of the **assignment_reasons** listed below the following requirements m
 
   * The number of cases assigned to a reader is less than their **max_cases**.
 
-* **Apply Consensus Assessment from Source**:
-
-  * The case exists in the destination reader project.
-  * A consensus assessment exists in the source case.
-
-  NOTE: If the assessment for the case does not yet exist in the reader project, the consensus assessment is used.
-
 NOTE: This gear assumes that you are running it from within a session contained in a "Master Project".  Attempting to execute this gear from within a reader project or at the project level will fail.
 
 ### Gear Configuration
@@ -60,7 +53,7 @@ NOTE: This gear assumes that you are running it from within a session contained 
 * **assignment_reason** (required): A selected reason for the new assignment or reassignment. (Default *Assign to Resolve Tie*).  
   * **Assign to Resolve Tie**: Assign this case to the specified reader. Increases **case_coverage** up to 4, if required.
   * **Individual Assignment**: Assign this case to the specified reader.
-  * **Apply Consensus Assessment from Source**: Removes **Completed** status from case, copies the consensus assessment from the source case to the reader case, and requires the reader to complete all required measurements.
+
 
 ### Expected Output
 
