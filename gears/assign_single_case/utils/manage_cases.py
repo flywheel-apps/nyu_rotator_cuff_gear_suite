@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import pandas as pd
@@ -281,6 +282,75 @@ def initialize_dataframes(fw_client, reader_group):
     return source_sessions_df, dest_projects_df
 
 
+def assess_completed_status(ohif_viewer):
+    """
+    Assess completion status from the ohif_viewer data and the user data
+
+    user_data is a selected subdictionary for the reader of the indicated project. If
+    that reader's id is not found as a key in the `read` subdictionary, then the first
+    user_id-key is used.
+
+    Args:
+        ohif_viewer (dict): All ohif-viewer data with measurements to check
+
+    Returns:
+        boolean: Completion Status (True/False)
+    """
+    try:
+        completed_status = True
+        reader_id = list(ohif_viewer["read"].keys())[0]
+        user_data = ohif_viewer["read"][reader_id]["notes"]
+        for tendon in ["infraspinatus", "supraspinatus", "subscapularis"]:
+            if user_data[tendon + "Tear"] in [
+                "none",
+                "lowPartial",
+                "highPartial",
+            ]:
+                completed_status &= True
+            elif user_data[tendon + "Tear"] == "full":
+                if not (
+                    user_data.get(tendon + "Retraction")
+                    and user_data[tendon + "Retraction"]
+                    in ["minimal", "humeral", "glenoid"]
+                ):
+                    completed_status &= False
+
+                if ohif_viewer.get("measurements") and ohif_viewer["measurements"].get(
+                    "Length"
+                ):
+                    Lengths = ohif_viewer["measurements"].get("Length")
+                    tendon_measures = [
+                        tendon_meas
+                        for tendon_meas in Lengths
+                        if tendon in tendon_meas["location"].lower()
+                    ]
+                    if len(tendon_measures) != 2:
+                        completed_status &= False
+                else:
+                    completed_status &= False
+            elif user_data[tendon + "Tear"] == "fullContiguous":
+                if user_data["supraspinatusTear"] == "full":
+                    completed_status &= True
+                else:
+                    completed_status &= False
+            else:
+                completed_status &= False
+            error_msg = None
+    except Exception as e:
+        completed_status = False
+        log.error(
+            "There was an error in the case assessment data. "
+            "Please examine and correct."
+        )
+        log.exception(e,)
+        error_msg = (
+            "ERROR: An error occurred in the case assessment. "
+            "Please examine and correct."
+        )
+
+    return completed_status, error_msg
+
+
 def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reason):
     """
     assign_single_case [summary]
@@ -390,7 +460,6 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
                     reader_id,
                     session_features["case_coverage"],
                 )
-                # TODO: Make this a particular defined Exception
                 raise ExceededConstraintsError("Assignment exceeds case_coverage.")
             else:
                 session_features["case_coverage"] += 1
@@ -454,57 +523,64 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
             raise MissingDataError("Missing Session in Destination Project.")
 
         session_info = src_session.info
-        if session_info.get("ohifViewer"):
+        if assess_completed_status(session_info.get("ohifViewer"))[0]:
             ohif_viewer = session_info.get("ohifViewer")
             admin_reader = list(ohif_viewer["read"].keys())[0]
+            # Find reader_assignment
+            assignment = [
+                assignment
+                for assignment in session_features["assignments"]
+                if assignment["reader_id"] == reader_id
+            ][0]
+
+            # Set assignment status to "Assigned", remove any acquired assessment data
+            assignment["status"] = "Assigned"
+            if assignment.get("read"):
+                assignment.pop("read")
+            if assignment.get("measurements"):
+                assignment.pop("measurements")
+
+            _reader_id = reader_id.replace(".", "_")
+
+            dest_session = fw_client.get(assignment["session_id"]).reload()
+            if assess_completed_status(dest_session.info.get("ohifViewer")[0]):
+                dest_ohifViewer = dest_session.info["ohifViewer"]
+
+                if _reader_id not in list(dest_ohifViewer["read"].keys()):
+                    _reader_id = list(dest_ohifViewer["read"].keys())[0]
+            else:
+                log.warning(
+                    "The reader (%s) has not completely assessed "
+                    "the assigned session (%s).\n"
+                    "The assessment must be completed and valid to be updated.",
+                    reader_id,
+                    src_session.label,
+                )
+                raise MissingDataError(
+                    "Case Assessment in Destination Case is either missing or invalid."
+                )
+
+                dest_ohifViewer = {"read": {_reader_id: {}}}
+
+            reader_ohif_notes = dest_ohifViewer["read"][_reader_id]["notes"]
+
+            # Build the temp dictionary to fill with {tendon}Tear = "full"/"Contiguous"
+            temp_dict = {}
+            for k, v in ohif_viewer["read"][admin_reader]["notes"].items():
+                if ("full" in v) and ("full" not in reader_ohif_notes[k]):
+                    temp_dict[k] = v
         else:
             log.error(
-                "The original case (%s) needs to have a completed consensus assessment "
+                "The original case (%s) needs to have a completed and valid consensus "
+                "assessment "
                 "for the selected reader (%s) to provide a measurement for.",
                 src_session.label,
                 reader_id,
             )
             raise MissingDataError("Missing assessment in source session.")
 
-        # Find reader_assignment
-        assignment = [
-            assignment
-            for assignment in session_features["assignments"]
-            if assignment["reader_id"] == reader_id
-        ][0]
-
-        # Set assignment status to "Assigned" and remove any assessment data
-        assignment["status"] = "Assigned"
-        if assignment.get("read"):
-            assignment.pop("read")
-        if assignment.get("measurements"):
-            assignment.pop("measurements")
-
-        _reader_id = reader_id.replace(".", "_")
-
-        dest_session = fw_client.get(assignment["session_id"]).reload()
-        if dest_session.info.get("ohifViewer"):
-            dest_ohifViewer = dest_session.info["ohifViewer"]
-
-            if _reader_id not in list(dest_ohifViewer["read"].keys()):
-                _reader_id = list(dest_ohifViewer["read"].keys())[0]
-        else:
-            log.warning(
-                "The reader (%s) has not assessed the assigned session (%s).\n"
-                "The consensus assessment is being applied for the reader to measure.",
-                reader_id,
-                src_session.label,
-            )
-            dest_ohifViewer = {"read": {_reader_id: {}}}
-
-        dest_ohifViewer["read"][_reader_id]["readOnly"] = True
-        dest_ohifViewer["read"][_reader_id]["notes"] = ohif_viewer["read"][
-            admin_reader
-        ]["notes"]
-        if dest_ohifViewer.get("measurements"):
-            dest_ohifViewer.pop("measurements")
-
-        dest_ohifViewer["read"][_reader_id]["notes"]["additionalNotes"] = reason
+        dest_ohifViewer["read"][_reader_id]["readOnly"] = False
+        dest_ohifViewer["read"][_reader_id]["notes"].update(temp_dict)
 
         dest_session.update_info({"ohifViewer": dest_ohifViewer})
 

@@ -18,6 +18,15 @@ class JobNotFoundError(Exception):
 
 
 def init_gear(gear_name):
+    """
+    Initializes a gear from name. Returns the flywheel client and gear object.
+
+    Args:
+        gear_name (str): Name of gear in instance reference by API-Key.
+
+    Returns:
+        tuple: fw_client (flywheel.Client), gear (flywheel.GearDoc)
+    """
     fw_client = flywheel.Client()
     gear = fw_client.gears.find_one(f'gear.name="{gear_name}"')
 
@@ -32,6 +41,20 @@ def run_gear_w_config(
     clear_input=False,
     replace_config=None,
 ):
+    """
+    Run a gear with given configuration.
+
+    Args:
+        fw_client (flywheel.Client): Active and valid connection to a Flywheel instance.
+        gear (flywheel.GearDoc): A gear registered in the above client.
+        gear_config (dict): Dictionary representing the gear configuration.
+        clear_config (bool, optional): Clear config portion or not. Defaults to False.
+        clear_input (bool, optional): Clear input portion or not. Defaults to False.
+        replace_config (dict, optional): A replacement configuration. Defaults to None.
+
+    Returns:
+        tuple: job, destination, config, inputs
+    """
     with open(config_path, "r") as fl:
         gear_config = json.load(fl)
 
@@ -100,9 +123,17 @@ def get_job_from_id(fw_client, analysis_id):
 
 
 def purge_reader_group(fw_client):
-    # it is going to be assumed that the group has been created and populated with
-    # appropriate users and permissions... on the other hand... this could be another
-    # gear entirely.  A list of users... or an option to this one.***
+    """
+    Purges all projects from the "readers" group.
+
+    It is assumed that the group has been created and populated with
+    appropriate users and permissions... on the other hand... this could be another
+    gear entirely.  A list of users... or an option to this one.
+    
+    Args:
+        fw_client (flywheel.Client): Active Flywheel Client.
+    """
+
     group = fw_client.groups.find_first('_id="readers"')
 
     if group:
