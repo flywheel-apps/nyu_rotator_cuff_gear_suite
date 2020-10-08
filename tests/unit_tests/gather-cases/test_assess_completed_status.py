@@ -6,8 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from gear_toolkit import gear_toolkit_context
-
 from gears.gather_cases.utils.manage_cases import assess_completed_status
 
 DATA_ROOT = Path(__file__).parents[2] / "data"

@@ -15,6 +15,7 @@ CASE_ASSESSMENT_REC = {
     "session": None,
     "reader_id": None,
     "completed": False,
+    "WCS": "LPS",
     "completed_timestamp": None,
     "infraspinatusTear": None,
     "infraspinatusDifficulty": None,
@@ -24,17 +25,17 @@ CASE_ASSESSMENT_REC = {
     "infraspinatus_anteroposterior_Length": None,
     "infraspinatus_anteroposterior_Voxel_Start": None,
     "infraspinatus_anteroposterior_Voxel_End": None,
-    "infraspinatus_anteroposterior_RAS_Start": None,
-    "infraspinatus_anteroposterior_RAS_End": None,
-    "infraspinatus_anteroposterior_ijk_to_RAS": None,
+    "infraspinatus_anteroposterior_WCS_Start": None,
+    "infraspinatus_anteroposterior_WCS_End": None,
+    "infraspinatus_anteroposterior_ijk_to_WCS": None,
     "infraspinatus_mediolateral_seriesDescription": None,
     "infraspinatus_mediolateral_seriesInstanceUid": None,
     "infraspinatus_mediolateral_Length": None,
     "infraspinatus_mediolateral_Voxel_Start": None,
     "infraspinatus_mediolateral_Voxel_End": None,
-    "infraspinatus_mediolateral_RAS_Start": None,
-    "infraspinatus_mediolateral_RAS_End": None,
-    "infraspinatus_mediolateral_ijk_to_RAS": None,
+    "infraspinatus_mediolateral_WCS_Start": None,
+    "infraspinatus_mediolateral_WCS_End": None,
+    "infraspinatus_mediolateral_ijk_to_WCS": None,
     "subscapularisTear": None,
     "subscapularisDifficulty": None,
     "subscapularisRetraction": None,
@@ -43,17 +44,17 @@ CASE_ASSESSMENT_REC = {
     "subscapularis_mediolateral_Length": None,
     "subscapularis_mediolateral_Voxel_Start": None,
     "subscapularis_mediolateral_Voxel_End": None,
-    "subscapularis_mediolateral_RAS_Start": None,
-    "subscapularis_mediolateral_RAS_End": None,
-    "subscapularis_mediolateral_ijk_to_RAS": None,
+    "subscapularis_mediolateral_WCS_Start": None,
+    "subscapularis_mediolateral_WCS_End": None,
+    "subscapularis_mediolateral_ijk_to_WCS": None,
     "subscapularis_craniocaudal_seriesDescription": None,
     "subscapularis_craniocaudal_seriesInstanceUid": None,
     "subscapularis_craniocaudal_Length": None,
     "subscapularis_craniocaudal_Voxel_Start": None,
     "subscapularis_craniocaudal_Voxel_End": None,
-    "subscapularis_craniocaudal_RAS_Start": None,
-    "subscapularis_craniocaudal_RAS_End": None,
-    "subscapularis_craniocaudal_ijk_to_RAS": None,
+    "subscapularis_craniocaudal_WCS_Start": None,
+    "subscapularis_craniocaudal_WCS_End": None,
+    "subscapularis_craniocaudal_ijk_to_WCS": None,
     "supraspinatusTear": None,
     "supraspinatusDifficulty": None,
     "supraspinatusRetraction": None,
@@ -62,17 +63,17 @@ CASE_ASSESSMENT_REC = {
     "supraspinatus_anteroposterior_Length": None,
     "supraspinatus_anteroposterior_Voxel_Start": None,
     "supraspinatus_anteroposterior_Voxel_End": None,
-    "supraspinatus_anteroposterior_RAS_Start": None,
-    "supraspinatus_anteroposterior_RAS_End": None,
-    "supraspinatus_anteroposterior_ijk_to_RAS": None,
+    "supraspinatus_anteroposterior_WCS_Start": None,
+    "supraspinatus_anteroposterior_WCS_End": None,
+    "supraspinatus_anteroposterior_ijk_to_WCS": None,
     "supraspinatus_mediolateral_seriesDescription": None,
     "supraspinatus_mediolateral_seriesInstanceUid": None,
     "supraspinatus_mediolateral_Length": None,
     "supraspinatus_mediolateral_Voxel_Start": None,
     "supraspinatus_mediolateral_Voxel_End": None,
-    "supraspinatus_mediolateral_RAS_Start": None,
-    "supraspinatus_mediolateral_RAS_End": None,
-    "supraspinatus_mediolateral_ijk_to_RAS": None,
+    "supraspinatus_mediolateral_WCS_Start": None,
+    "supraspinatus_mediolateral_WCS_End": None,
+    "supraspinatus_mediolateral_ijk_to_WCS": None,
     "additionalNotes": "",
 }
 
@@ -105,6 +106,19 @@ class UninitializedGroupError(Exception):
 
 class MissingDICOMTagError(Exception):
     """Exception raised for an unavailable tag in the dicom file.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
+class InvalidWCSStringERROR(Exception):
+    """Exception raised for an invalid WCS String.
 
     Attributes:
         expression -- input expression in which the error occurred
@@ -156,6 +170,73 @@ def io_proxy_wado(
     return leval(req.text)
 
 
+def change_world_coordinate_system(WCS):
+    """
+    Change from LPS to the given world coordinate system.
+
+    Args:
+        WCS (str): Three letter string L/R, A/P, S/I (e.g. "LPI")
+
+    Raises:
+        InvalidWCSStringERROR: Raised if the string is invalid/
+
+    Returns:
+        np.Array: Conversion Matrix from LPS to chosen WCS
+    """
+
+    LPS = "LPS"
+    if (
+        (len(WCS) is not 3)
+        or (WCS[0] not in ["L", "R"])
+        or (WCS[1] not in ["A", "P"])
+        or (WCS[2] not in ["S", "I"])
+    ):
+        raise InvalidWCSStringERROR("Invalid WCS String. Check and try again.")
+
+    vector = [1 if WCS[i] == LPS[i] else -1 for i in range(3)]
+    vector.append(1)
+    return np.diag(vector)
+
+
+def create_ijk_to_WCS_matrix(WCS, ImageOrientation, ImagePosition, PixelSpacing):
+    """
+    create_ijk_to_WCS_matrix [summary]
+
+    Args:
+        WCS (str): Three letter string identifying coordinate system (e.g "RAS")
+        ImageOrientation (list): A six float list from ImageOrientationPatient tag.
+        ImagePosition (dict): A dictionary containing 1, 2, N members of 
+            ImagePositionPatient tags from all dicoms in series.
+        PixelSpacing (list): List from PixelSpacing dicom tag.
+
+    Returns:
+        np.Array: A 4x4 numpy array for the voxel to world coordinate system.
+    """
+    DistanceBetweenSlices = np.linalg.norm(ImagePosition[1] - ImagePosition[2])
+    N = list(ImagePosition)[-1]
+    # Initialize WCS matrix
+    ijk_WCS_matrix = np.zeros((4, 4))
+
+    ijk_WCS_matrix[3, 3] = 1.0
+    # Create third column from the cross-product of the first two
+    ijk_WCS_matrix[:3, 0] = ImageOrientation[:3]
+    ijk_WCS_matrix[:3, 1] = ImageOrientation[3:]
+    ijk_WCS_matrix[:3, 2] = (ImagePosition[N] - ImagePosition[1]) / np.linalg.norm(
+        ImagePosition[N] - ImagePosition[1]
+    )
+    # ijk_WCS_matrix[:3, 2] = np.cross(ijk_WCS_matrix[:3, 0], ijk_WCS_matrix[:3, 1])
+    ijk_WCS_matrix[:3, 3] = ImagePosition[1]
+
+    # Adjust Matrix for the world coordinate system used
+    ijk_WCS_matrix = np.matmul(change_world_coordinate_system(WCS), ijk_WCS_matrix)
+
+    spacing = np.diag([PixelSpacing[0], PixelSpacing[1], DistanceBetweenSlices, 1])
+
+    ijk_WCS_matrix = np.matmul(ijk_WCS_matrix, spacing)
+
+    return ijk_WCS_matrix
+
+
 def io_proxy_acquire_coords(fw_client, project_id, Length):
     """
     Acquires coordinates and conversion matrix from dicom tags in io-proxy
@@ -166,8 +247,10 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         Length (dict): The ohif-derived json from a single measurement
 
     Returns:
-        tuple: start/stop coordinates in voxel/RAS-space plus conversion matrix
+        tuple: start/stop coordinates in voxel/WCS-space plus conversion matrix
     """
+    # This project requests coordinates in "LPS"-world coordinates
+    WCS = "LPS"
     host = fw_client._fw.api_client.configuration.host[:-8]
     api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix[
         "Authorization"
@@ -177,28 +260,30 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
 
     voxel_start = np.ones((4, 1))
     voxel_end = np.ones((4, 1))
-    ras_start = np.zeros((4, 1))
-    ras_end = np.zeros((4, 1))
-    ijk_RAS_matrix = np.zeros((4, 4))
-
-    ijk_RAS_matrix[3, 3] = 1.0
+    wcs_start = np.zeros((4, 1))
+    wcs_end = np.zeros((4, 1))
 
     study, series, instance = Length["imagePath"].split("$$$")[:3]
 
     instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
-
+    N = len(instances)
     # The rest of the tags come from the measured slice
     slice_instance = io_proxy_wado(
         api_key, api_key_prefix, project_id, study, series, instance
     )
 
     try:
-        # find first instance for the first ImagePositionPatient as image origin
-        first_inst = [i for i in instances if i["00200013"]["Value"] == [1]][0]
-        second_inst = [i for i in instances if i["00200013"]["Value"] == [2]][0]
-
-        # (0020, 0032) Image Position (Patient)
-        ImagePosition = first_inst["00200032"]["Value"]
+        # (0020, 0032) Image Position (Patient) of three values
+        ImagePosition = {}
+        ImagePosition[1] = [
+            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [1]
+        ][0]
+        ImagePosition[2] = [
+            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [2]
+        ][0]
+        ImagePosition[N] = [
+            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [N]
+        ][0]
 
         # (0020, 0037) Image Orientation (Patient)
         ImageOrientation = slice_instance["00200037"]["Value"]
@@ -209,6 +294,7 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         InstanceNumber = slice_instance["00200013"]["Value"][0]
         # (0008, 103E) Series Description
         SeriesDescription = slice_instance["0008103E"]["Value"][0]
+
     except Exception as e:
         log.exception(e)
         raise MissingDICOMTagError(
@@ -221,11 +307,12 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
             "Please replace the DICOM Series with a valid copy."
         )
 
-    DistanceBetweenSlices = distance.euclidean(
-        first_inst["00200032"]["Value"], second_inst["00200032"]["Value"]
-    )
-    # Preferred offset
-    offset = np.array([0, 0, 0]).reshape((3, 1))
+    # Offsets to turn ohif, one-indexed coordinates to zero and then 1/2-voxel indexed
+    # 1/2-voxel indexed makes the center of the origin voxel map to the origin of the
+    # patient space.
+    one_index_offset = np.array([1.0, 1.0, 1.0]).reshape((3, 1))
+    half_voxel_offest = np.array([0.5, 0.5, 0.5]).reshape((3, 1))
+    offset = one_index_offset + half_voxel_offest
 
     voxel_start[:3] = (
         np.array(
@@ -249,28 +336,19 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
         - offset
     )
 
-    # Create third column from the cross-product of the first two
-    ijk_RAS_matrix[:3, 0] = ImageOrientation[:3]
-    ijk_RAS_matrix[:3, 1] = ImageOrientation[3:]
-    ijk_RAS_matrix[:3, 2] = np.cross(ijk_RAS_matrix[:3, 0], ijk_RAS_matrix[:3, 1])
-    ijk_RAS_matrix[:3, 3] = ImagePosition
+    ijk_WCS_matrix = create_ijk_to_WCS_matrix(
+        WCS, ImageOrientation, ImagePosition, PixelSpacing
+    )
 
-    # Adjust for the direction of the voxel coordinate system
-    ijk_RAS_matrix = np.matmul(np.diag([-1, -1, 1, 1]), ijk_RAS_matrix)
-
-    spacing = np.diag([PixelSpacing[0], PixelSpacing[1], DistanceBetweenSlices, 1])
-
-    ijk_RAS_matrix = np.matmul(ijk_RAS_matrix, spacing)
-
-    ras_start = np.matmul(ijk_RAS_matrix, voxel_start)
-    ras_end = np.matmul(ijk_RAS_matrix, voxel_end)
+    wcs_start = np.matmul(ijk_WCS_matrix, voxel_start)
+    wcs_end = np.matmul(ijk_WCS_matrix, voxel_end)
 
     return (
         voxel_start.reshape((4,))[:3],
         voxel_end.reshape((4,))[:3],
-        ras_start.reshape((4,))[:3],
-        ras_end.reshape((4,))[:3],
-        ijk_RAS_matrix.tolist(),
+        wcs_start.reshape((4,))[:3],
+        wcs_end.reshape((4,))[:3],
+        ijk_WCS_matrix.tolist(),
         SeriesDescription,
     )
 
@@ -529,9 +607,9 @@ def fill_reader_case_data(fw_client, project_features, session):
                             (
                                 voxel_start,
                                 voxel_end,
-                                ras_start,
-                                ras_end,
-                                ijk_RAS_matrix,
+                                wcs_start,
+                                wcs_end,
+                                ijk_WCS_matrix,
                                 seriesDescription,
                             ) = io_proxy_acquire_coords(
                                 fw_client, assignment["project_id"], Length
@@ -546,11 +624,11 @@ def fill_reader_case_data(fw_client, project_features, session):
                                 prefix + "_Voxel_Start"
                             ] = voxel_start
                             case_assignment_status[prefix + "_Voxel_End"] = voxel_end
-                            case_assignment_status[prefix + "_RAS_Start"] = ras_start
-                            case_assignment_status[prefix + "_RAS_End"] = ras_end
+                            case_assignment_status[prefix + "_WCS_Start"] = wcs_start
+                            case_assignment_status[prefix + "_WCS_End"] = wcs_end
                             case_assignment_status[
-                                prefix + "_ijk_to_RAS"
-                            ] = ijk_RAS_matrix
+                                prefix + "_ijk_to_WCS"
+                            ] = ijk_WCS_matrix
                 except Exception as e:
                     completed_status = False
                     error_msg = (

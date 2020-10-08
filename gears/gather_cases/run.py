@@ -3,7 +3,7 @@
 import logging
 import os
 
-from gear_toolkit import gear_toolkit_context
+from flywheel_gear_toolkit import GearToolkitContext
 
 from utils.check_jobs import (
     DuplicateJobError,
@@ -83,7 +83,7 @@ def main(context):
 
 
 if __name__ == "__main__":
-    with gear_toolkit_context.GearToolkitContext() as gear_context:
+    with GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

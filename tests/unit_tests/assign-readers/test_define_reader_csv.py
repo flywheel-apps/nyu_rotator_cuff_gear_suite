@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from gear_toolkit import gear_toolkit_context
-
+from flywheel_gear_toolkit import GearToolkitContext
 from gears.assign_readers.utils.manage_cases import InvalidInputError, define_reader_csv
 
 DATA_ROOT = Path(__file__).parents[2] / "data"
@@ -60,9 +59,7 @@ def test_valid_config():
         gear_dir.mkdir(parents=True, exist_ok=True)
 
         # Instantiate a gear context object
-        with gear_toolkit_context.GearToolkitContext(
-            gear_path=gear_dir, input_args=[]
-        ) as context:
+        with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
             # create a configuration
             config = create_gear_config(
                 "test.email@email.com", "test-firstname", "test-lastname", 23
@@ -100,9 +97,7 @@ def test_email_capitalization():
         gear_dir.mkdir(parents=True, exist_ok=True)
 
         # Instantiate a gear context object
-        with gear_toolkit_context.GearToolkitContext(
-            gear_path=gear_dir, input_args=[]
-        ) as context:
+        with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
             # create a configuration
             config = create_gear_config(
                 "Test.Email@email.com", "test-firstname", "test-lastname", 23
@@ -140,9 +135,7 @@ def test_invalid_config():
         gear_dir.mkdir(parents=True, exist_ok=True)
 
         # Instantiate a gear context object
-        with gear_toolkit_context.GearToolkitContext(
-            gear_path=gear_dir, input_args=[]
-        ) as context:
+        with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
             # create a configuration
             config = create_gear_config(
                 "test.email@email.com", None, "test-lastname", 23
@@ -165,9 +158,7 @@ def test_invalid_config():
 
 def test_valid_user_csv(tmpdir):
     gear_dir = create_gear_dir(tmpdir)
-    with gear_toolkit_context.GearToolkitContext(
-        gear_path=gear_dir, input_args=[]
-    ) as context:
+    with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
         reader_csv_path = define_reader_csv(context)
         assert (
             reader_csv_path
@@ -182,9 +173,7 @@ def test_valid_user_csv(tmpdir):
 def test_valid_csv_with_valid_config(tmpdir):
     gear_dir = create_gear_dir(tmpdir)
     # Instantiate a gear context object
-    with gear_toolkit_context.GearToolkitContext(
-        gear_path=gear_dir, input_args=[]
-    ) as context:
+    with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
         # create a configuration w/CAPs to test casting embedded in define_reader_csv
         config = create_gear_config(
             "Test.Email@email.com", "test-firstname", "test-lastname", 23
@@ -219,9 +208,7 @@ def test_valid_csv_with_valid_config(tmpdir):
 def test_valid_csv_with_duplicate_config(tmpdir):
     gear_dir = create_gear_dir(tmpdir)
     # Instantiate a gear context object
-    with gear_toolkit_context.GearToolkitContext(
-        gear_path=gear_dir, input_args=[]
-    ) as context:
+    with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
         # create a configuration
         config = create_gear_config("thadbrown@flywheel.io", "Thad", "Brown", 11)
         for k, v in config.items():
@@ -248,9 +235,7 @@ def test_invalid_reader_csv(caplog):
     with tempfile.TemporaryDirectory() as tmp_folder:
         gear_dir = create_gear_dir(tmp_folder)
 
-        with gear_toolkit_context.GearToolkitContext(
-            gear_path=gear_dir, input_args=[]
-        ) as context:
+        with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
             create_invalid_csv(context)
             try:
                 reader_csv_path = define_reader_csv(context)
@@ -274,9 +259,7 @@ def test_invalid_reader_csv(caplog):
 def test_valid_csv_with_invalid_config(caplog, tmpdir):
     gear_dir = create_gear_dir(tmpdir)
 
-    with gear_toolkit_context.GearToolkitContext(
-        gear_path=gear_dir, input_args=[]
-    ) as context:
+    with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
         # create a configuration
         config = create_gear_config("test.email@email.com", None, "test-lastname", 23)
         for k, v in config.items():
@@ -306,9 +289,7 @@ def test_valid_csv_with_invalid_config(caplog, tmpdir):
 def test_invalid_csv_with_valid_config(caplog, tmpdir):
     gear_dir = create_gear_dir(tmpdir)
 
-    with gear_toolkit_context.GearToolkitContext(
-        gear_path=gear_dir, input_args=[]
-    ) as context:
+    with GearToolkitContext(gear_path=gear_dir, input_args=[]) as context:
         # create a configuration
         config = create_gear_config(
             "test.email@email.com", "test-firstname", "test-lastname", 23

@@ -282,7 +282,7 @@ def initialize_dataframes(fw_client, reader_group):
     return source_sessions_df, dest_projects_df
 
 
-def assess_completed_status(ohif_viewer):
+def assess_completed_status(ohif_viewer, reader_id=None):
     """
     Assess completion status from the ohif_viewer data and the user data
 
@@ -292,13 +292,17 @@ def assess_completed_status(ohif_viewer):
 
     Args:
         ohif_viewer (dict): All ohif-viewer data with measurements to check
+        reader_id (str, optional): If specified, indicated reader is preferred, else 
+            the first reader encountered is used. Defaults to None.
 
     Returns:
         boolean: Completion Status (True/False)
     """
     try:
         completed_status = True
-        reader_id = list(ohif_viewer["read"].keys())[0]
+        if not reader_id or reader_id not in list(ohif_viewer["read"].keys()):
+            reader_id = list(ohif_viewer["read"].keys())[0]
+
         user_data = ohif_viewer["read"][reader_id]["notes"]
         for tendon in ["infraspinatus", "supraspinatus", "subscapularis"]:
             if user_data[tendon + "Tear"] in [
@@ -543,7 +547,9 @@ def assign_single_case(fw_client, src_session, reader_group_id, reader_id, reaso
             _reader_id = reader_id.replace(".", "_")
 
             dest_session = fw_client.get(assignment["session_id"]).reload()
-            if assess_completed_status(dest_session.info.get("ohifViewer")[0]):
+            if assess_completed_status(dest_session.info.get("ohifViewer"), _reader_id)[
+                0
+            ]:
                 dest_ohifViewer = dest_session.info["ohifViewer"]
 
                 if _reader_id not in list(dest_ohifViewer["read"].keys()):
