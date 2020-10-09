@@ -268,27 +268,28 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
     N = len(instances)
     # The rest of the tags come from the measured slice
-    slice_instance = io_proxy_wado(
-        api_key, api_key_prefix, project_id, study, series, instance
-    )
+    slice_instance = [i for i in instances if i["00080018"]["Value"][0] == instance][0]
+    # The following is NOT working... finding in instances.
+    # io_proxy_wado(
+    #     api_key, api_key_prefix, project_id, study, series, instance
+    # )
 
     try:
         # (0020, 0032) Image Position (Patient) of three values
         ImagePosition = {}
-        ImagePosition[1] = [
-            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [1]
-        ][0]
-        ImagePosition[2] = [
-            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [2]
-        ][0]
-        ImagePosition[N] = [
-            i["00200032"]["Value"] for i in instances if i["00200013"]["Value"] == [N]
-        ][0]
+        for j in [1, 2, N]:
+            ImagePosition[j] = np.array(
+                [
+                    i["00200032"]["Value"]
+                    for i in instances
+                    if i["00200013"]["Value"] == [j]
+                ][0]
+            )
 
         # (0020, 0037) Image Orientation (Patient)
-        ImageOrientation = slice_instance["00200037"]["Value"]
+        ImageOrientation = np.array(slice_instance["00200037"]["Value"])
         # (0028, 0030) Pixel Spacing
-        PixelSpacing = slice_instance["00280030"]["Value"]
+        PixelSpacing = np.array(slice_instance["00280030"]["Value"])
 
         # (0020, 0013) Instance Number
         InstanceNumber = slice_instance["00200013"]["Value"][0]
@@ -310,38 +311,28 @@ def io_proxy_acquire_coords(fw_client, project_id, Length):
     # Offsets to turn ohif, one-indexed coordinates to zero and then 1/2-voxel indexed
     # 1/2-voxel indexed makes the center of the origin voxel map to the origin of the
     # patient space.
-    one_index_offset = np.array([1.0, 1.0, 1.0]).reshape((3, 1))
-    half_voxel_offest = np.array([0.5, 0.5, 0.5]).reshape((3, 1))
+    one_index_offset = np.array([1.0, 1.0, 1.0, 0]).reshape((4, 1))
+    half_voxel_offest = np.array([0.5, 0.5, 0.5, 0]).reshape((4, 1))
     offset = one_index_offset + half_voxel_offest
 
-    voxel_start[:3] = (
-        np.array(
-            [
-                Length["handles"]["start"]["x"],
-                Length["handles"]["start"]["y"],
-                InstanceNumber,
-            ]
-        ).reshape((3, 1))
-        - offset
-    )
+    voxel_start[:3] = np.array(
+        [
+            Length["handles"]["start"]["x"],
+            Length["handles"]["start"]["y"],
+            InstanceNumber,
+        ]
+    ).reshape((3, 1))
 
-    voxel_end[:3] = (
-        np.array(
-            [
-                Length["handles"]["end"]["x"],
-                Length["handles"]["end"]["y"],
-                InstanceNumber,
-            ]
-        ).reshape((3, 1))
-        - offset
-    )
+    voxel_end[:3] = np.array(
+        [Length["handles"]["end"]["x"], Length["handles"]["end"]["y"], InstanceNumber]
+    ).reshape((3, 1))
 
     ijk_WCS_matrix = create_ijk_to_WCS_matrix(
         WCS, ImageOrientation, ImagePosition, PixelSpacing
     )
 
-    wcs_start = np.matmul(ijk_WCS_matrix, voxel_start)
-    wcs_end = np.matmul(ijk_WCS_matrix, voxel_end)
+    wcs_start = np.matmul(ijk_WCS_matrix, voxel_start - offset)
+    wcs_end = np.matmul(ijk_WCS_matrix, voxel_end - offset)
 
     return (
         voxel_start.reshape((4,))[:3],

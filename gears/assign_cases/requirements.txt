@@ -6,5 +6,3 @@ pydicom==1.4.2
 python-dateutil==2.8.1
 pytz==2020.1
 tzlocal==2.1b1
-urllib3==1.25.8
-zipp==2.2.0
