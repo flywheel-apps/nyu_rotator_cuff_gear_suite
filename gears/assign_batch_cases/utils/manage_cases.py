@@ -336,13 +336,21 @@ def check_valid_case_assignment(
     src_session = fw_client.sessions.find_first(f"_id={session_id}")
     if not src_session:
         message = (
-            f"Session with id {session_id} is not found in this Master Project. "
-            f"Proceeding without making this assignment to reader {reader_email}."
+            f"Session with id ({session_id}) is not found within a Master Project. "
+            f"Proceeding without making this assignment to reader ({reader_email})."
         )
         return False, message
     else:
         src_session = src_session.reload()
-        
+
+    # Check for the forbidden group
+    if reader_group_id in src_session.parents:
+        message = (
+            f"Session with id ({session_id}) belongs to a reader project.\n"
+            f"Please correctly identify the session in a Master Project and try again."
+        )
+        return False, message
+
     # Check for valid Reader
     reader_proj = check_valid_reader(fw_client, reader_email, reader_group_id)
     if not reader_proj:
