@@ -5,7 +5,6 @@ from pathlib import Path
 import bson
 import numpy as np
 import pandas as pd
-
 from gears.assign_cases.utils.manage_cases import select_readers_without_replacement
 
 DATA_ROOT = Path(__file__).parents[2] / "data"
@@ -141,7 +140,7 @@ def test_single_master_multi_distributions():
     np.random.seed(3231)
     for i in range(7):
         max_cases += 20
-        max_case = min(max_cases, 120)
+        max_cases = min(max_cases, 120)
 
         for indx in dest_projects_df.index:
             dest_projects_df.loc[indx, "max_cases"] = max_cases

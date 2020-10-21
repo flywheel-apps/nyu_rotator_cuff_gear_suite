@@ -1,0 +1,287 @@
+{
+    "resetTool": true,
+    "labels": [
+        {
+            "label": "Supraspinatus - anteroposterior",
+            "value": "Supraspinatus - anteroposterior",
+            "limit": 1
+        },
+        {
+            "label": "Supraspinatus - mediolateral",
+            "value": "Supraspinatus - mediolateral",
+            "limit": 1
+        },
+        {
+            "label": "Infraspinatus - anteroposterior",
+            "value": "Infraspinatus - anteroposterior",
+            "limit": 1
+        },
+        {
+            "label": "Infraspinatus - mediolateral",
+            "value": "Infraspinatus - mediolateral",
+            "limit": 1
+        },
+        {
+            "label": "Subscapularis - mediolateral",
+            "value": "Subscapularis - mediolateral",
+            "limit": 1
+        },
+        {
+            "label": "Subscapularis - craniocaudal",
+            "value": "Subscapularis - craniocaudal",
+            "limit": 1
+        }
+    ],
+    "questions": [
+        {
+            "prompt": "Supraspinatus",
+            "key": "supraspinatusTear",
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "No tear",
+                    "excludeMeasurements": [
+                        "Supraspinatus - anteroposterior",
+                        "Supraspinatus - mediolateral"
+                    ]
+                },
+                {
+                    "value": "lowPartial",
+                    "label": "Low grade partial thickness tear"
+                },
+                {
+                    "value": "highPartial",
+                    "label": "High grade partial thickness tear"
+                },
+                {
+                    "value": "full",
+                    "label": "Full-thickness tear",
+                    "requireMeasurements": [
+                        "Supraspinatus - anteroposterior",
+                        "Supraspinatus - mediolateral"
+                    ],
+                    "measurementTools": [
+                        "Length"
+                    ]
+                }
+            ]
+        },
+        {
+            "prompt": "The proximal tendon stump of the full-thickness tear is:",
+            "key": "supraspinatusRetraction",
+            "when": {
+                "supraspinatusTear": "full"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "minimal",
+                    "label": "Minimally retracted (near the insertion)"
+                },
+                {
+                    "value": "humeral",
+                    "label": "Retracted to the level of the humeral head"
+                },
+                {
+                    "value": "glenoid",
+                    "label": "Retracted to the level of the glenoid or more proximal"
+                }
+            ]
+        },
+        {
+            "prompt": "Supraspinatus Difficulty",
+            "key": "supraspinatusDifficulty",
+            "required": true,
+            "type": "radio",
+            "style": "buttons",
+            "options": [
+                {
+                    "value": "minus",
+                    "label": "−"
+                },
+                {
+                    "value": "none",
+                    "label": "0"
+                },
+                {
+                    "value": "plus",
+                    "label": "+"
+                }
+            ]
+        },
+        {
+            "prompt": "Infraspinatus",
+            "key": "infraspinatusTear",
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "No tear",
+                    "excludeMeasurements": [
+                        "Infraspinatus - anteroposterior",
+                        "Infraspinatus - mediolateral"
+                    ]
+                },
+                {
+                    "value": "lowPartial",
+                    "label": "Low grade partial thickness tear"
+                },
+                {
+                    "value": "highPartial",
+                    "label": "High grade partial thickness tear"
+                },
+                {
+                    "value": "full",
+                    "label": "Full-thickness tear",
+                    "requireMeasurements": [
+                        "Infraspinatus - anteroposterior",
+                        "Infraspinatus - mediolateral"
+                    ],
+                    "measurementTools": [
+                        "Length"
+                    ]
+                },
+                {
+                    "value": "fullContiguous",
+                    "label": "Full-thickness tear (contiguous with supraspinatus tear)",
+                    "require": {
+                        "supraspinatusTear": "full"
+                    }
+                }
+            ]
+        },
+        {
+            "prompt": "The proximal tendon stump of the full-thickness tear is:",
+            "key": "infraspinatusRetraction",
+            "when": {
+                "infraspinatusTear": "full"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "minimal",
+                    "label": "Minimally retracted (near the insertion)"
+                },
+                {
+                    "value": "humeral",
+                    "label": "Retracted to the level of the humeral head"
+                },
+                {
+                    "value": "glenoid",
+                    "label": "Retracted to the level of the glenoid or more proximal"
+                }
+            ]
+        },
+        {
+            "prompt": "Infraspinatus Difficulty",
+            "key": "infraspinatusDifficulty",
+            "required": true,
+            "type": "radio",
+            "style": "buttons",
+            "options": [
+                {
+                    "value": "minus",
+                    "label": "−"
+                },
+                {
+                    "value": "none",
+                    "label": "0"
+                },
+                {
+                    "value": "plus",
+                    "label": "+"
+                }
+            ]
+        },
+        {
+            "prompt": "Subscapularis",
+            "key": "subscapularisTear",
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "No tear",
+                    "excludeMeasurements": [
+                        "Subscapularis - mediolateral",
+                        "Subscapularis - craniocaudal"
+                    ]
+                },
+                {
+                    "value": "lowPartial",
+                    "label": "Low grade partial thickness tear"
+                },
+                {
+                    "value": "highPartial",
+                    "label": "High grade partial thickness tear"
+                },
+                {
+                    "value": "full",
+                    "label": "Full-thickness tear",
+                    "requireMeasurements": [
+                        "Subscapularis - mediolateral",
+                        "Subscapularis - craniocaudal"
+                    ],
+                    "measurementTools": [
+                        "Length"
+                    ]
+                }
+            ]
+        },
+        {
+            "prompt": "The proximal tendon stump of the full-thickness tear is:",
+            "key": "subscapularisRetraction",
+            "when": {
+                "subscapularisTear": "full"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "minimal",
+                    "label": "Minimally retracted (near the insertion)"
+                },
+                {
+                    "value": "humeral",
+                    "label": "Retracted to the level of the humeral head"
+                },
+                {
+                    "value": "glenoid",
+                    "label": "Retracted to the level of the glenoid or more proximal"
+                }
+            ]
+        },
+        {
+            "prompt": "Subscapularis Difficulty",
+            "key": "subscapularisDifficulty",
+            "required": true,
+            "type": "radio",
+            "style": "buttons",
+            "options": [
+                {
+                    "value": "minus",
+                    "label": "−"
+                },
+                {
+                    "value": "none",
+                    "label": "0"
+                },
+                {
+                    "value": "plus",
+                    "label": "+"
+                }
+            ]
+        },
+        {
+            "prompt": "Additional Notes",
+            "key": "additionalNotes",
+            "required": false,
+            "type": "text"
+        }
+    ]
+}

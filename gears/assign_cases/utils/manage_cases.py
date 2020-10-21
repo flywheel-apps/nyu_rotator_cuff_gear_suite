@@ -368,6 +368,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
                 log.warning("Error while exporting a session, %s.", src_session.label)
                 log.exception(e)
                 log.warning("Examine the data and try again.")
+                continue
 
             # grab the index from the dataframe and record source and dest
             # session ids

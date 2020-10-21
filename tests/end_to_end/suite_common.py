@@ -1,3 +1,4 @@
+import copy
 import json
 import time
 
@@ -60,11 +61,11 @@ def run_gear_w_config(
 
     config = gear_config["config"]
     inputs = gear_config["inputs"]
-    if list(inputs.keys()):
+    if inputs.get("destination"):
+        destination = fw_client.get(inputs["destination"]["id"])
+    elif list(inputs.keys()):
         project = fw_client.get(inputs[list(inputs.keys())[0]]["id"])
         destination = project.sessions()[0]
-    elif gear_config.get("destination"):
-        destination = fw_client.get(gear_config["destination"]["id"])
 
     if clear_config:
         for key, value in config.items():
@@ -74,13 +75,16 @@ def run_gear_w_config(
     if clear_input:
         inputs = {}
     else:
-        for key, value in inputs.items():
-            input_file = [
-                fl
-                for fl in fw_client.get(value["id"]).files
-                if fl.name == value["name"]
-            ][0]
-            inputs[key] = input_file
+        for key, value in copy.deepcopy(inputs).items():
+            if value.get("name"):
+                input_file = [
+                    fl
+                    for fl in fw_client.get(value["id"]).files
+                    if fl.name == value["name"]
+                ][0]
+                inputs[key] = input_file
+            else:
+                inputs.pop(key)
 
     if replace_config:
         config = replace_config

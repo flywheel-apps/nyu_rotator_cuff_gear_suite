@@ -1,15 +1,12 @@
 {
     "config": {
-        "reader_email": "georgeJetson@gmail.com",
-        "reader_firstname": "George",
-        "reader_lastname": "Jetson",
-        "max_cases": 10
+        "case_coverage": 3
     },
     "inputs": {
-        "reader_csv": {
+        "batch_csv": {
             "type": "project",
             "id": "5f174c122384cf000c737b8c",
-            "name": "users-short.csv"
+            "name": "batch_all_errors1.csv"
         },
         "destination": {
             "type": "project",

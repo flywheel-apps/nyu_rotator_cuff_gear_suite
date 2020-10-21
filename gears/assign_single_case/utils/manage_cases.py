@@ -292,7 +292,7 @@ def assess_completed_status(ohif_viewer, reader_id=None):
 
     Args:
         ohif_viewer (dict): All ohif-viewer data with measurements to check
-        reader_id (str, optional): If specified, indicated reader is preferred, else 
+        reader_id (str, optional): If specified, indicated reader is preferred, else
             the first reader encountered is used. Defaults to None.
 
     Returns:

@@ -1,0 +1,44 @@
+{
+    "name": "assign-batch-cases",
+    "label": "5. Assign Batch Cases",
+    "description": "This gear assigns a batch of cases to readers from a master project given tabular data. Each case is assessed by a \"case_coverage\" number of readers. Each reader elects to have a maximum number of cases (\"max_cases\") to assess. If this gear attempts to assign more than \"max_cases\", the assignment is not performed and a warning is given.",
+    "author": "Flywheel",
+    "maintainer": "Flywheel <support@flywheel.io>",
+    "license": "Other",
+    "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
+    "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_batch_cases",
+    "cite": "",
+    "version": "0.0.1-dev-f",
+    "custom": {
+        "docker-image": "flywheel/assign-batch-cases:0.0.1-dev-f",
+        "gear-builder": {
+            "category": "analysis",
+            "image": "flywheel/assign-batch-cases:0.0.1-dev-f"
+        }
+    },
+    "inputs": {
+        "api-key": {
+            "base": "api-key"
+        },
+        "batch_csv": {
+            "description": "A csv file containing session_id, session_label, and reader_email that constitutes an assignment of a case to a reader.",
+            "optional": true,
+            "base": "file",
+            "type": {
+                "enum": [
+                    "tabular data"
+                ]
+            }
+        }
+    },
+    "config": {
+        "case_coverage": {
+            "default": 3,
+            "minimum": 1,
+            "maximum": 4,
+            "description": "The number of readers each case will be provided to.",
+            "type": "integer"
+        }
+    },
+    "command": "/flywheel/v0/run.py"
+}
