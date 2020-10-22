@@ -16,14 +16,14 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 
 ## Usage Notes
 
-The `assign-batch-cases` gear assigns multiple cases as specified in a user-supplied `csv` file. Each assignment is validated by the availability of the specified reader (i.e. the readers number of assignments is less than their maximum number of cases). On execution, the gear distributes each case to the readers specified in the csv. 
+The `assign-batch-cases` gear assigns multiple cases as specified in a user-supplied `csv` file. Each assignment is validated by the existence of the case in a Master Project, the current assignments of that case (e.g. **num_assignments**< **case_coverage**), the availability of the specified reader (e.g. **num_assignments**<**max_cases**). On execution, the gear distributes each case to the readers specified in the csv.
 
-### Requirements
+### Inputs
 
-The **batch_csv** file, used as an input, must have `session_id`, `session_label`, and `reader_email` as columns.
+* **batch_csv** (required): A `csv` file containing  `session_id`, `session_label`, and `reader_email` as columns. This defines the `assignment` of each case.
 
-* The **session_id** must be a valid Flywheel session in a "Master Project". 
-* The **reader_email** must be a valid Flywheel user and have an existing reader project
+  * The **session_id** must be a valid Flywheel session in a "Master Project".
+  * The **reader_email** must be a valid Flywheel user and have an existing reader project
 
 
 NOTE: This gear assumes that you are running it from within a "Master Project".  Attempting to execute this gear from within a reader project or at the session level will fail.

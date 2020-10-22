@@ -344,7 +344,8 @@ def check_valid_case_assignment(
         src_session = src_session.reload()
 
     # Check for the forbidden group
-    if reader_group_id in src_session.parents:
+    # TODO: Derive a test...tricky... because of created projects and sessions.
+    if src_session.parents["group"] is reader_group_id:
         message = (
             f"Session with id ({session_id}) belongs to a reader project.\n"
             f"Please correctly identify the session in a Master Project and try again."
