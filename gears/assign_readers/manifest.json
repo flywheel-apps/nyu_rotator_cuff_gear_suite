@@ -5,15 +5,15 @@
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
     "license": "Other",
-    "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
-    "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_readers",
+    "url": "https://github.com/flywheel-apps/blind_reader_study/",
+    "source": "https://github.com/flywheel-apps/blind_reader_study/gears/assign_readers",
     "cite": "",
-    "version": "0.1.1-dev-a",
+    "version": "0.1.0",
     "custom": {
-        "docker-image": "flywheel/assign-readers:0.1.1-dev-a",
+        "docker-image": "flywheel/assign-readers:0.1.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-readers:0.1.1-dev-a"
+            "image": "flywheel/assign-readers:0.1.0"
         }
     },
     "inputs": {

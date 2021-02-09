@@ -1,7 +1,7 @@
 ,id,label,reader_id,assignments,max_cases,num_assignments
-1,5eba0eb0bfda51022d6aa0ac,Reader 1,karenlopez@flywheel.io,"",5,0
-2,5eba0eb0bfda5102316aa098,Reader 2,thadbrown@flywheel.io,"",5,0
-3,5eba0eb1bfda5102356aa067,Reader 3,jodyzeitler@flywheel.io,"",5,0
-4,5eba0eb1bfda51022d6aa0af,Reader 4,kalebfischer@flywheel.io,"",5,0
-5,5eba0eb1bfda5102356aa06a,Reader 5,justinehlert@flywheel.io,"",5,0
-6,5eba0eb2bfda5102356aa06d,Reader 6,robinrantala@flywheel.io,"",5,0
+1,5eba0eb0bfda51022d6aa0ac,Reader 1,karenlopez@flywheel.io,"",200,0
+2,5eba0eb0bfda5102316aa098,Reader 2,thadbrown@flywheel.io,"",200,0
+3,5eba0eb1bfda5102356aa067,Reader 3,jodyzeitler@flywheel.io,"",200,0
+4,5eba0eb1bfda51022d6aa0af,Reader 4,kalebfischer@flywheel.io,"",200,0
+5,5eba0eb1bfda5102356aa06a,Reader 5,justinehlert@flywheel.io,"",200,0
+6,5eba0eb2bfda5102356aa06d,Reader 6,robinrantala@flywheel.io,"",200,0

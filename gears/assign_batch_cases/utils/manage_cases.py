@@ -362,7 +362,14 @@ def check_valid_case_assignment(
         return False, message
 
     # Check for the existence of the selected session in the reader project
-    if src_session.label in [sess.label for sess in reader_proj.sessions()]:
+    reader_proj_features = reader_proj.info.get("project_features")
+    if reader_proj_features:
+        reader_assignments = reader_proj_features.get("assignments")
+    else:
+        reader_assignments = None
+    if reader_assignments and src_session.id in [
+        assnmt["source_session"] for assnmt in reader_assignments
+    ]:
         message = (
             f"Selected session ({src_session.label}) has already been assigned to "
             f"reader ({reader_email})."

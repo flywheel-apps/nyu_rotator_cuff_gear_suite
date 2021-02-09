@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
-from scipy.spatial import distance
 
 log = logging.getLogger(__name__)
 
@@ -15,66 +14,7 @@ CASE_ASSESSMENT_REC = {
     "session": None,
     "reader_id": None,
     "completed": False,
-    "WCS": "LPS",
     "completed_timestamp": None,
-    "infraspinatusTear": None,
-    "infraspinatusDifficulty": None,
-    "infraspinatusRetraction": None,
-    "infraspinatus_anteroposterior_seriesDescription": None,
-    "infraspinatus_anteroposterior_seriesInstanceUid": None,
-    "infraspinatus_anteroposterior_Length": None,
-    "infraspinatus_anteroposterior_Voxel_Start": None,
-    "infraspinatus_anteroposterior_Voxel_End": None,
-    "infraspinatus_anteroposterior_WCS_Start": None,
-    "infraspinatus_anteroposterior_WCS_End": None,
-    "infraspinatus_anteroposterior_ijk_to_WCS": None,
-    "infraspinatus_mediolateral_seriesDescription": None,
-    "infraspinatus_mediolateral_seriesInstanceUid": None,
-    "infraspinatus_mediolateral_Length": None,
-    "infraspinatus_mediolateral_Voxel_Start": None,
-    "infraspinatus_mediolateral_Voxel_End": None,
-    "infraspinatus_mediolateral_WCS_Start": None,
-    "infraspinatus_mediolateral_WCS_End": None,
-    "infraspinatus_mediolateral_ijk_to_WCS": None,
-    "subscapularisTear": None,
-    "subscapularisDifficulty": None,
-    "subscapularisRetraction": None,
-    "subscapularis_mediolateral_seriesDescription": None,
-    "subscapularis_mediolateral_seriesInstanceUid": None,
-    "subscapularis_mediolateral_Length": None,
-    "subscapularis_mediolateral_Voxel_Start": None,
-    "subscapularis_mediolateral_Voxel_End": None,
-    "subscapularis_mediolateral_WCS_Start": None,
-    "subscapularis_mediolateral_WCS_End": None,
-    "subscapularis_mediolateral_ijk_to_WCS": None,
-    "subscapularis_craniocaudal_seriesDescription": None,
-    "subscapularis_craniocaudal_seriesInstanceUid": None,
-    "subscapularis_craniocaudal_Length": None,
-    "subscapularis_craniocaudal_Voxel_Start": None,
-    "subscapularis_craniocaudal_Voxel_End": None,
-    "subscapularis_craniocaudal_WCS_Start": None,
-    "subscapularis_craniocaudal_WCS_End": None,
-    "subscapularis_craniocaudal_ijk_to_WCS": None,
-    "supraspinatusTear": None,
-    "supraspinatusDifficulty": None,
-    "supraspinatusRetraction": None,
-    "supraspinatus_anteroposterior_seriesDescription": None,
-    "supraspinatus_anteroposterior_seriesInstanceUid": None,
-    "supraspinatus_anteroposterior_Length": None,
-    "supraspinatus_anteroposterior_Voxel_Start": None,
-    "supraspinatus_anteroposterior_Voxel_End": None,
-    "supraspinatus_anteroposterior_WCS_Start": None,
-    "supraspinatus_anteroposterior_WCS_End": None,
-    "supraspinatus_anteroposterior_ijk_to_WCS": None,
-    "supraspinatus_mediolateral_seriesDescription": None,
-    "supraspinatus_mediolateral_seriesInstanceUid": None,
-    "supraspinatus_mediolateral_Length": None,
-    "supraspinatus_mediolateral_Voxel_Start": None,
-    "supraspinatus_mediolateral_Voxel_End": None,
-    "supraspinatus_mediolateral_WCS_Start": None,
-    "supraspinatus_mediolateral_WCS_End": None,
-    "supraspinatus_mediolateral_ijk_to_WCS": None,
-    "additionalNotes": "",
 }
 
 
@@ -128,6 +68,41 @@ class InvalidWCSStringERROR(Exception):
     def __init__(self, message):
         Exception.__init__(self)
         self.message = message
+
+
+class MissingFileError(Exception):
+    """Exception raised when expected file not found in container.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
+def populate_case_assessment_rec(fw_client, source_project):
+    """
+    Args:
+        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
+        source_project (flywheel.Project): The source project for all sessions
+    """
+    ohif_config_path = "/tmp/ohif_config.json"
+    if source_project.get_file("ohif_config.json"):
+        source_project.download_file("ohif_config.json", ohif_config_path)
+        ohif_dict = json.load(open(ohif_config_path, "r"))
+        for question in ohif_dict["questions"]:
+            key = question["key"]
+            CASE_ASSESSMENT_REC[key] = None
+    else:
+        ErrorMSG = (
+            f"The project, {source_project.label}, is missing the expected file, "
+            '"ohif_config.json". Ensure its existence and validity before running '
+            "this gear again."
+        )
+        raise MissingFileError(ErroMSG)
 
 
 def io_proxy_wado(
@@ -205,7 +180,7 @@ def create_ijk_to_WCS_matrix(WCS, ImageOrientation, ImagePosition, PixelSpacing)
     Args:
         WCS (str): Three letter string identifying coordinate system (e.g "RAS")
         ImageOrientation (list): A six float list from ImageOrientationPatient tag.
-        ImagePosition (dict): A dictionary containing 1, 2, N members of 
+        ImagePosition (dict): A dictionary containing 1, 2, N members of
             ImagePositionPatient tags from all dicoms in series.
         PixelSpacing (list): List from PixelSpacing dicom tag.
 
@@ -365,42 +340,7 @@ def assess_completed_status(ohif_viewer, user_data):
             error_msg = None
         else:
             completed_status = True
-            for tendon in ["infraspinatus", "supraspinatus", "subscapularis"]:
-                if user_data[tendon + "Tear"] in [
-                    "none",
-                    "lowPartial",
-                    "highPartial",
-                ]:
-                    completed_status &= True
-                elif user_data[tendon + "Tear"] == "full":
-                    if not (
-                        user_data.get(tendon + "Retraction")
-                        and user_data[tendon + "Retraction"]
-                        in ["minimal", "humeral", "glenoid"]
-                    ):
-                        completed_status &= False
-
-                    if ohif_viewer.get("measurements") and ohif_viewer[
-                        "measurements"
-                    ].get("Length"):
-                        Lengths = ohif_viewer["measurements"].get("Length")
-                        tendon_measures = [
-                            tendon_meas
-                            for tendon_meas in Lengths
-                            if tendon in tendon_meas["location"].lower()
-                        ]
-                        if len(tendon_measures) != 2:
-                            completed_status &= False
-                    else:
-                        completed_status &= False
-                elif user_data[tendon + "Tear"] == "fullContiguous":
-                    if user_data["supraspinatusTear"] == "full":
-                        completed_status &= True
-                    else:
-                        completed_status &= False
-                else:
-                    completed_status &= False
-                error_msg = None
+            error_msg = None
     except Exception as e:
         completed_status = False
         log.error(
@@ -579,17 +519,19 @@ def fill_reader_case_data(fw_client, project_features, session):
                 case_assignment_status.update(user_data)
 
                 # Eliminate carriage return and present error message
-                additional_notes = case_assignment_status["additionalNotes"]
+                additional_notes = case_assignment_status["notes"]
                 additional_notes = additional_notes.replace("\n", " ")
                 if error_msg:
                     additional_notes += error_msg
-                case_assignment_status["additionalNotes"] = additional_notes
+                case_assignment_status["notes"] = additional_notes
 
             case_assignment_status.update({"completed": completed_status})
 
             if ohif_viewer.get("measurements") and not error_msg:
                 try:
-                    if ohif_viewer["measurements"].get("Length"):
+                    # Eliminating this for now, Doesn't work without the required
+                    # Dicom Tags
+                    if False:  # ohif_viewer["measurements"].get("Length"):
                         for Length in ohif_viewer["measurements"]["Length"]:
                             prefix = Length["location"].lower().replace(" - ", "_")
                             case_assignment_status[prefix + "_Length"] = Length[
@@ -681,6 +623,8 @@ def gather_case_data_from_readers(fw_client, source_project):
             "completed",
         ]
     )
+    # Populate case assessment record from source project's ohif_config.json
+    populate_case_assessment_rec(fw_client, source_project)
 
     # Create a DataFrame to record the state of each assessment by a reader
     case_assessment_df = pd.DataFrame(columns=CASE_ASSESSMENT_REC.keys())

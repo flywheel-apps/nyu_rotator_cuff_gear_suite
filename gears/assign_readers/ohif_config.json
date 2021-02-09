@@ -1,285 +1,1228 @@
 {
-    "resetTool": true,
+    "hideMeasurements": true,
     "labels": [
         {
-            "label": "Supraspinatus - anteroposterior",
-            "value": "Supraspinatus - anteroposterior",
-            "limit": 1
-        },
-        {
-            "label": "Supraspinatus - mediolateral",
-            "value": "Supraspinatus - mediolateral",
-            "limit": 1
-        },
-        {
-            "label": "Infraspinatus - anteroposterior",
-            "value": "Infraspinatus - anteroposterior",
-            "limit": 1
-        },
-        {
-            "label": "Infraspinatus - mediolateral",
-            "value": "Infraspinatus - mediolateral",
-            "limit": 1
-        },
-        {
-            "label": "Subscapularis - mediolateral",
-            "value": "Subscapularis - mediolateral",
-            "limit": 1
-        },
-        {
-            "label": "Subscapularis - craniocaudal",
-            "value": "Subscapularis - craniocaudal",
+            "label": "MainPulmonaryArtery",
+            "value": "Main Pulmonary Artery",
             "limit": 1
         }
     ],
     "questions": [
         {
-            "prompt": "Supraspinatus",
-            "key": "supraspinatusTear",
+            "prompt": "Is the Study Interpretable?",
+            "key": "intepretable",
             "required": true,
             "type": "radio",
             "options": [
                 {
-                    "value": "none",
-                    "label": "No tear",
-                    "excludeMeasurements": [
-                        "Supraspinatus - anteroposterior",
-                        "Supraspinatus - mediolateral"
-                    ]
+                    "value": "yes",
+                    "label": "Yes"
                 },
                 {
-                    "value": "lowPartial",
-                    "label": "Low grade partial thickness tear"
-                },
-                {
-                    "value": "highPartial",
-                    "label": "High grade partial thickness tear"
-                },
-                {
-                    "value": "full",
-                    "label": "Full-thickness tear",
-                    "requireMeasurements": [
-                        "Supraspinatus - anteroposterior",
-                        "Supraspinatus - mediolateral"
-                    ],
-                    "measurementTools": [
-                        "Length"
-                    ]
+                    "value": "no",
+                    "label": "No"
                 }
             ]
         },
         {
-            "prompt": "The proximal tendon stump of the full-thickness tear is:",
-            "key": "supraspinatusRetraction",
+            "prompt": "----PATTERN----",
+            "key": "pattern",
             "when": {
-                "supraspinatusTear": "full"
+                "intepretable": "yes"
             },
             "required": true,
             "type": "radio",
             "options": [
                 {
-                    "value": "minimal",
-                    "label": "Minimally retracted (near the insertion)"
+                    "value": "organized pneumonia",
+                    "label": "Organized Pneumonia(OP)"
                 },
                 {
-                    "value": "humeral",
-                    "label": "Retracted to the level of the humeral head"
+                    "value": "ground glass opacity",
+                    "label": "Ground Glass Opacity(GGO)"
                 },
                 {
-                    "value": "glenoid",
-                    "label": "Retracted to the level of the glenoid or more proximal"
-                }
-            ]
-        },
-        {
-            "prompt": "Supraspinatus Difficulty",
-            "key": "supraspinatusDifficulty",
-            "required": true,
-            "type": "radio",
-            "style": "buttons",
-            "options": [
+                    "value": "diffuse alveolar damage",
+                    "label": "Diffuse Alveolar Damage(DAD)"
+                },
                 {
-                    "value": "minus",
-                    "label": "−"
+                    "value": "nodular",
+                    "label": "Nodular"
+                },
+                {
+                    "value": "atypical",
+                    "label": "Atypical"
                 },
                 {
                     "value": "none",
-                    "label": "0"
-                },
-                {
-                    "value": "plus",
-                    "label": "+"
+                    "label": "No Airspace Disease"
                 }
             ]
         },
         {
-            "prompt": "Infraspinatus",
-            "key": "infraspinatusTear",
-            "required": true,
-            "type": "radio",
-            "options": [
-                {
-                    "value": "none",
-                    "label": "No tear",
-                    "excludeMeasurements": [
-                        "Infraspinatus - anteroposterior",
-                        "Infraspinatus - mediolateral"
-                    ]
-                },
-                {
-                    "value": "lowPartial",
-                    "label": "Low grade partial thickness tear"
-                },
-                {
-                    "value": "highPartial",
-                    "label": "High grade partial thickness tear"
-                },
-                {
-                    "value": "full",
-                    "label": "Full-thickness tear",
-                    "requireMeasurements": [
-                        "Infraspinatus - anteroposterior",
-                        "Infraspinatus - mediolateral"
-                    ],
-                    "measurementTools": [
-                        "Length"
-                    ]
-                },
-                {
-                    "value": "fullContiguous",
-                    "label": "Full-thickness tear (contiguous with supraspinatus tear)",
-                    "require": {
-                        "supraspinatusTear": "full"
-                    }
-                }
-            ]
-        },
-        {
-            "prompt": "The proximal tendon stump of the full-thickness tear is:",
-            "key": "infraspinatusRetraction",
+            "prompt": "SUBPLEURAL CLEARING (OP)",
+            "key": "pattern_OP_subplclear",
             "when": {
-                "infraspinatusTear": "full"
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "WELL-MARGINATED OPACITIES (OP)",
+            "key": "pattern_OP_wellmargop",
+            "when": {
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "BRONCHIAL DILATION (OP)",
+            "key": "pattern_OP_bronchdilation",
+            "when": {
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "SUBPLEURAL TRIANGULAR OPACITIES (OP)",
+            "key": "pattern_OP_subpltriangop",
+            "when": {
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "PERILOBULAR/CURVILINEAR BASILAR CONSOL (OP)",
+            "key": "pattern_OP_perilobcurvibconsol",
+            "when": {
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "**Consolidation Scale**",
+            "key": "pattern_OP_perilobcurvibconsol_scale",
+            "when": {
+                "pattern_OP_perilobcurvibconsol": "present"
             },
             "required": true,
             "type": "radio",
             "options": [
                 {
-                    "value": "minimal",
-                    "label": "Minimally retracted (near the insertion)"
+                    "value": "1",
+                    "label": "(1) Perilobular"
                 },
                 {
-                    "value": "humeral",
-                    "label": "Retracted to the level of the humeral head"
+                    "value": "2",
+                    "label": "(2)"
                 },
                 {
-                    "value": "glenoid",
-                    "label": "Retracted to the level of the glenoid or more proximal"
+                    "value": "3",
+                    "label": "(3)"
+                },
+                {
+                    "value": "4",
+                    "label": "(4)"
+                },
+                {
+                    "value": "5",
+                    "label": "(5) Curvilinear Basilar"
                 }
             ]
         },
         {
-            "prompt": "Infraspinatus Difficulty",
-            "key": "infraspinatusDifficulty",
-            "required": true,
-            "type": "radio",
-            "style": "buttons",
-            "options": [
-                {
-                    "value": "minus",
-                    "label": "−"
-                },
-                {
-                    "value": "none",
-                    "label": "0"
-                },
-                {
-                    "value": "plus",
-                    "label": "+"
-                }
-            ]
-        },
-        {
-            "prompt": "Subscapularis",
-            "key": "subscapularisTear",
-            "required": true,
-            "type": "radio",
-            "options": [
-                {
-                    "value": "none",
-                    "label": "No tear",
-                    "excludeMeasurements": [
-                        "Subscapularis - mediolateral",
-                        "Subscapularis - craniocaudal"
-                    ]
-                },
-                {
-                    "value": "lowPartial",
-                    "label": "Low grade partial thickness tear"
-                },
-                {
-                    "value": "highPartial",
-                    "label": "High grade partial thickness tear"
-                },
-                {
-                    "value": "full",
-                    "label": "Full-thickness tear",
-                    "requireMeasurements": [
-                        "Subscapularis - mediolateral",
-                        "Subscapularis - craniocaudal"
-                    ],
-                    "measurementTools": [
-                        "Length"
-                    ]
-                }
-            ]
-        },
-        {
-            "prompt": "The proximal tendon stump of the full-thickness tear is:",
-            "key": "subscapularisRetraction",
+            "prompt": "ATOLL SIGN (OP)",
+            "key": "pattern_OP_atoll",
             "when": {
-                "subscapularisTear": "full"
+                "pattern": "organized pneumonia"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "DENSITY (GGO)",
+            "key": "pattern_GGO_density",
+            "when": {
+                "pattern": "ground glass opacity"
             },
             "required": true,
             "type": "radio",
             "options": [
                 {
-                    "value": "minimal",
-                    "label": "Minimally retracted (near the insertion)"
+                    "value": "pure",
+                    "label": "Pure"
                 },
                 {
-                    "value": "humeral",
-                    "label": "Retracted to the level of the humeral head"
-                },
-                {
-                    "value": "glenoid",
-                    "label": "Retracted to the level of the glenoid or more proximal"
+                    "value": "mixed",
+                    "label": "Mixed"
                 }
             ]
         },
         {
-            "prompt": "Subscapularis Difficulty",
-            "key": "subscapularisDifficulty",
+            "prompt": "LOCATION (GGO)",
+            "key": "pattern_GGO_location",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
             "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "basilar",
+                    "label": "Basilar"
+                },
+                {
+                    "value": "upper",
+                    "label": "Upper"
+                },
+                {
+                    "value": "no predominance",
+                    "label": "No Predominance"
+                }
+            ]
+        },
+        {
+            "prompt": "PRIMARY DISTRIBUTION (GGO)",
+            "key": "pattern_GGO_distribution",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "peripheral",
+                    "label": "Peripheral"
+                },
+                {
+                    "value": "peribronchial",
+                    "label": "Peribronchial"
+                },
+                {
+                    "value": "central",
+                    "label": "Central"
+                }
+            ]
+        },
+        {
+            "prompt": "--ORGANIZING FEATURES (GGO)--",
+            "key": "pattern_GGO_header_orgfx",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "type": "radio",
+            "options": []
+        },
+        {
+            "prompt": "Subpleural Clearing (GGO)",
+            "key": "pattern_GGO_subpleuralclear",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "Bronchial Dilation (GGO)",
+            "key": "pattern_GGO_bronchdilat",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "Perilobular Opacities (GGO)",
+            "key": "pattern_GGO_perilobopac",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "Subpleural Triangular Opacities (GGO)",
+            "key": "pattern_GGO_subpltriangopac",
+            "when": {
+                "pattern": "ground glass opacity"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "SUBPLEURAL CLEARING (DAD)",
+            "key": "pattern_DAD_subpleuralclear",
+            "when": {
+                "pattern": "diffuse alveolar damage"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "WELL-MARGINATED OPACITIES (DAD) ",
+            "key": "pattern_DAD_wellmargpopac",
+            "when": {
+                "pattern": "diffuse alveolar damage"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "BRONCHIAL DILATION (DAD)",
+            "key": "pattern_DAD_bronchdilation",
+            "when": {
+                "pattern": "diffuse alveolar damage"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "CURVILINEAR BASILAR CONSOL (DAD)",
+            "key": "pattern_DAD_curvilinbasilarcons",
+            "when": {
+                "pattern": "diffuse alveolar damage"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "GROUND GLASS OPACITIES (ATYP)",
+            "key": "pattern_ATYP_groundglass",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "*Atypical GGO Pattern",
+            "key": "pattern_ATYP_groundglass_pattern",
+            "when": {
+                "pattern_ATYP_groundglass": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "peripheral",
+                    "label": "Peripheral"
+                },
+                {
+                    "value": "peribronchial",
+                    "label": "Peribronchial"
+                },
+                {
+                    "value": "central",
+                    "label": "Central"
+                }
+            ]
+        },
+        {
+            "prompt": "CONSOLIDATION (ATYP)",
+            "key": "pattern_ATYP_consolidation",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "*Atypical Consolidation Pattern",
+            "key": "pattern_ATYP_consolidation_pattern",
+            "when": {
+                "pattern_ATYP_consolidation": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "multifocal/patchy",
+                    "label": "Multifocal/patchy"
+                },
+                {
+                    "value": "segmented/lobar",
+                    "label": "Segmented/lobar"
+                }
+            ]
+        },
+        {
+            "prompt": "ATELECTASIS/COLLAPSE (ATYP)",
+            "key": "pattern_ATYP_atelectcollapse",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "*Atelectasis/Collapse Severity",
+            "key": "pattern_ATYP_atelectcollapse_sev",
+            "when": {
+                "pattern_ATYP_atelectcollapse": "present"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "atelectasis",
+                    "label": "Atelectasis"
+                },
+                {
+                    "value": "partialcollapse",
+                    "label": "Partial Collapse"
+                },
+                {
+                    "value": "lobarcollapse",
+                    "label": "Lobar Collapse"
+                }
+            ]
+        },
+        {
+            "prompt": "ENDOBRONCHIAL (ATYP)",
+            "key": "pattern_ATYP_endobronch",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "*Atypical Endobronchial Pattern",
+            "key": "pattern_ATYP_endobronch_pattern",
+            "when": {
+                "pattern_ATYP_endobronch": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "tree-in-bud nodules",
+                    "label": "Tree-in-bud nodules"
+                },
+                {
+                    "value": "peribronchial airspace disease",
+                    "label": "Peribronchial airspace disease"
+                }
+            ]
+        },
+        {
+            "prompt": "CAVITATION (ATYP)",
+            "key": "pattern_ATYP_cavitation",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "*Atypical Cavitation Pattern",
+            "key": "pattern_ATYP_cavitation_pattern",
+            "when": {
+                "pattern_ATYP_cavitation": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "primary airspace disease",
+                    "label": "Primary airspace disease"
+                },
+                {
+                    "value": "primary cavitation",
+                    "label": "Primary cavitation"
+                }
+            ]
+        },
+        {
+            "prompt": "OTHER (ATYP)",
+            "key": "pattern_ATYP_other",
+            "when": {
+                "pattern": "atypical"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "Findings: Atypical - Other",
+            "key": "pattern_ATYP_other_text",
+            "when": {
+                "pattern_ATYP_other": "present"
+            },
+            "required": true,
+            "type": "text"
+        },
+        {
+            "prompt": "----SEVERITY----",
+            "key": "severity_ru",
+            "when": {
+                "intepretable": "yes"
+            },
+            "type": "radio",
+            "options": []
+        },
+        {
+            "prompt": "Right-upper",
+            "key": "severity_ru_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "Right-middle",
+            "key": "severity_rm_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "Right-lower",
+            "key": "severity_rl_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "Left-upper",
+            "key": "severity_lu_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "Left-middle",
+            "key": "severity_lm_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "Left-lower",
+            "key": "severity_ll_percent",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "0% (None)"
+                },
+                {
+                    "value": "minimal",
+                    "label": "1-10% (Minimal)"
+                },
+                {
+                    "value": "mild",
+                    "label": "10-25% (Mild)"
+                },
+                {
+                    "value": "moderate",
+                    "label": "25-50% (Moderate)"
+                },
+                {
+                    "value": "severe",
+                    "label": "50-100% (Severe)"
+                }
+            ]
+        },
+        {
+            "prompt": "**Air Space Disease Density Scale**",
+            "key": "severity_airspace_density_scale",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "none",
+                    "label": "(0) None"
+                },
+                {
+                    "value": "1",
+                    "label": "(1) Subtle GGO"
+                },
+                {
+                    "value": "2",
+                    "label": "(2)"
+                },
+                {
+                    "value": "3",
+                    "label": "(3) Equally Mixed Density"
+                },
+                {
+                    "value": "4",
+                    "label": "(4)"
+                },
+                {
+                    "value": "5",
+                    "label": "(5) Dense Consolidation"
+                }
+            ]
+        },
+        {
+            "prompt": "----OTHER FINDINGS----",
+            "key": "otherfindings_vasc",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": false,
             "type": "radio",
             "style": "buttons",
             "options": [
                 {
-                    "value": "minus",
-                    "label": "−"
+                    "value": "vascular",
+                    "label": "Vascular"
+                }
+            ]
+        },
+        {
+            "prompt": "MAIN PULMONARY ARTERY ENLARGEMENT",
+            "key": "otherfindings_vasc_mainpulmaenlarg",
+            "when": {
+                "otherfindings_vasc": "vascular"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
                 },
                 {
-                    "value": "none",
-                    "label": "0"
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "PULMONARY EMBOLISM (PE)",
+            "key": "otherfindings_vasc_pe",
+            "when": {
+                "otherfindings_vasc": "vascular"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
                 },
                 {
-                    "value": "plus",
-                    "label": "+"
+                    "value": "absent",
+                    "label": "Absent"
+                },
+                {
+                    "value": "noncontrast",
+                    "label": "Non-contrast"
+                }
+            ]
+        },
+        {
+            "prompt": "**PE - Severity",
+            "key": "otherfindings_vasc_pe_sev",
+            "when": {
+                "otherfindings_vasc_pe": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "mild",
+                    "label": "Mild"
+                },
+                {
+                    "value": "moderate",
+                    "label": "Moderate"
+                },
+                {
+                    "value": "severe",
+                    "label": "Severe"
+                }
+            ]
+        },
+        {
+            "prompt": "VASCULAR DILATION",
+            "key": "otherfindings_vasc_dilation",
+            "when": {
+                "otherfindings_vasc": "vascular"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                },
+                {
+                    "value": "noncontrast",
+                    "label": "Non-contrast"
+                }
+            ]
+        },
+        {
+            "prompt": "",
+            "key": "otherfindings_pulm",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": false,
+            "type": "radio",
+            "style": "buttons",
+            "options": [
+                {
+                    "value": "miscpulmonary",
+                    "label": "Misc Pulmonary"
+                }
+            ]
+        },
+        {
+            "prompt": "EMPHYSEMA",
+            "key": "otherfindings_pulm_emphysema",
+            "when": {
+                "otherfindings_pulm": "miscpulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "**Emphysema Severity",
+            "key": "otherfindings_pulm_emphysema_sev",
+            "when": {
+                "otherfindings_pulm_emphysema": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "mild",
+                    "label": "Mild"
+                },
+                {
+                    "value": "moderate",
+                    "label": "Moderate"
+                },
+                {
+                    "value": "severe",
+                    "label": "Severe"
+                }
+            ]
+        },
+        {
+            "prompt": "INTRALOBULAR SEPTAL THICKENING",
+            "key": "otherfindings_pulm_intralobseptthick",
+            "when": {
+                "otherfindings_pulm": "miscpulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "CRAZY PAVING",
+            "key": "otherfindings_pulm_crazypaving",
+            "when": {
+                "otherfindings_pulm": "miscpulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                },
+                {
+                    "value": "uninterpretable",
+                    "label": "Respiratory motion/uninterpretable"
+                }
+            ]
+        },
+        {
+            "prompt": "**Crazy Paving Severity",
+            "key": "otherfindings_pulm_crazypaving_sev",
+            "when": {
+                "otherfindings_pulm_crazypaving": "present"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "limited",
+                    "label": "Limited"
+                },
+                {
+                    "value": "modest",
+                    "label": "Modest"
+                },
+                {
+                    "value": "majority",
+                    "label": "Majority"
+                }
+            ]
+        },
+        {
+            "prompt": "",
+            "key": "otherfindings_extrapulm",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": false,
+            "type": "radio",
+            "style": "buttons",
+            "options": [
+                {
+                    "value": "extra-pulmonary",
+                    "label": "Extra-pulmonary"
+                }
+            ]
+        },
+        {
+            "prompt": "LEFT VENTRICULAR ENLARGEMENT",
+            "key": "otherfindings_extrapulm_lvenlarge",
+            "when": {
+                "otherfindings_extrapulm": "extra-pulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "LYMPHADENOPATHY (≥10mm)",
+            "key": "otherfindings_extrapulm_lymph",
+            "when": {
+                "otherfindings_extrapulm": "extra-pulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "PLEURAL EFFUSION (>trace)",
+            "key": "otherfindings_extrapulm_pleuraleff",
+            "when": {
+                "otherfindings_extrapulm": "extra-pulmonary"
+            },
+            "required": false,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "present",
+                    "label": "Present"
+                },
+                {
+                    "value": "absent",
+                    "label": "Absent"
+                }
+            ]
+        },
+        {
+            "prompt": "----OVERALL INTERPRETATION----",
+            "key": "overallInterp",
+            "when": {
+                "intepretable": "yes"
+            },
+            "required": true,
+            "type": "radio",
+            "options": [
+                {
+                    "value": "CO-RADS 1",
+                    "label": "CO-RADS 1"
+                },
+                {
+                    "value": "CO-RADS 2",
+                    "label": "CO-RADS 2"
+                },
+                {
+                    "value": "CO-RADS 3",
+                    "label": "CO-RADS 3"
+                },
+                {
+                    "value": "CO-RADS 4",
+                    "label": "CO-RADS 4"
+                },
+                {
+                    "value": "CO-RADS 5",
+                    "label": "CO-RADS 5"
                 }
             ]
         },
         {
             "prompt": "Additional Notes",
-            "key": "additionalNotes",
+            "key": "notes",
+            "when": {
+                "intepretable": "yes"
+            },
             "required": false,
             "type": "text"
         }
