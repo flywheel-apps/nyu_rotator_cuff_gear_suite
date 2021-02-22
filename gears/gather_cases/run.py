@@ -14,6 +14,7 @@ from utils.check_jobs import (
 from utils.manage_cases import (
     InvalidGroupError,
     MissingDICOMTagError,
+    MissingFileError,
     UninitializedGroupError,
     gather_case_data_from_readers,
 )
@@ -47,7 +48,7 @@ def main(context):
             )
 
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
-            fw_client, source_project
+            context, source_project
         )
 
         source_sessions_df.to_csv(
@@ -69,6 +70,7 @@ def main(context):
         InvalidGroupError,
         UninitializedGroupError,
         MissingDICOMTagError,
+        MissingFileError,
     ) as e:
         log.error(e.message)
         log.fatal("Error executing assign-readers.",)
