@@ -18,6 +18,18 @@ CASE_ASSESSMENT_REC = {
     "completed_timestamp": None,
 }
 
+MEASUREMENT_TYPES = {
+    "Length": {"handles": ["start", "end"]},
+    "Bidirectional": {
+        "handles": ["start", "end", "perpendicularStart", "perpendicularEnd"]
+    },
+    "ArrowAnnotate": {"handles": ["start", "end"]},
+    "Angle": {"handles": ["start", "middle", "end"]},
+    "FreehandRoi": {"handles": ["points"]},
+    "RectangleRoi": {"handles": ["start", "end"]},
+    "EllipticalRoi": {"handles": ["start", "end"]},
+}
+
 
 class InvalidGroupError(Exception):
     """Exception raised for using an Invalid Flywheel group for this gear.
@@ -84,6 +96,19 @@ class MissingFileError(Exception):
         self.message = message
 
 
+class BadConfigError(Exception):
+    """Exception raised when expected ohif configuration is invalid.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        Exception.__init__(self)
+        self.message = message
+
+
 def populate_case_assessment_rec(fw_client, source_project):
     """
     Args:
@@ -93,17 +118,54 @@ def populate_case_assessment_rec(fw_client, source_project):
     ohif_config_path = "/tmp/ohif_config.json"
     if source_project.get_file("ohif_config.json"):
         source_project.download_file("ohif_config.json", ohif_config_path)
-        ohif_dict = json.load(open(ohif_config_path, "r", encoding="utf-8"))
-        for question in ohif_dict["questions"]:
+        ohif_config_dict = json.load(open(ohif_config_path, "r", encoding="utf-8"))
+        # TODO: make this dynamic for the form.io structure:
+        # ohif_config_dict["studyForm"]["components"]...
+        # Assuming that the old form will be depricated....
+        if ohif_config_dict.get("questions"):
+            questions = ohif_config_dict.get("questions")
+        elif ohif_config_dict.get("studyForm"):
+            questions = [
+                x
+                for x in ohif_config_dict["studyForm"].get("components")
+                if x.get("key")
+            ]
+        else:
+            error_msg = "The ohif configuration is invalid. Please check and try again."
+            raise BadConfigError(error_msg)
+
+        for question in questions:
             key = question["key"]
             CASE_ASSESSMENT_REC[key] = None
+            # Check for ROI components
+            if question.get("values"):
+                requireMeasurements = [
+                    x.get("requireMeasurements")
+                    for x in question.get("values")
+                    if x.get("requireMeasurements")
+                ]
+                if requireMeasurements:
+                    requireMeasurements = requireMeasurements[0]
+                for measurement in requireMeasurements:
+                    # required measurements are expected to have names like:
+                    # "Supraspinatus - anteroposterior"
+                    # which will be changed to "Supraspinatus_anteroposterior"
+                    # This could use a more "robust" renaming convention
+                    measurement_name = (
+                        measurement.lower().replace("-", "_").replace(" ", "")
+                    )
+                    # These columns represent two different coordinate lists:
+                    #  "_Voxel" and "_WCS" (Voxel coordinates and World Coordinates)
+                    for suffix in ["_Voxel", "_WCS", "_ijk_to_WCS"]:
+                        key_name = measurement_name + suffix
+                        CASE_ASSESSMENT_REC[key_name] = None
     else:
-        ErrorMSG = (
+        error_msg = (
             f"The project, {source_project.label}, is missing the expected file, "
             '"ohif_config.json". Ensure its existence and validity before running '
             "this gear again."
         )
-        raise MissingFileError(ErrorMSG)
+        raise MissingFileError(error_msg)
 
 
 def io_proxy_wado(
@@ -211,6 +273,116 @@ def create_ijk_to_WCS_matrix(WCS, ImageOrientation, ImagePosition, PixelSpacing)
     ijk_WCS_matrix = np.matmul(ijk_WCS_matrix, spacing)
 
     return ijk_WCS_matrix
+
+
+def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
+    """
+    Use io_proxy to retrieve voxel/world coordinates and transformation matrix.
+
+    Args:
+        fw_client (flywheel.Client): The active flywheel client
+        project_id (str): The project id to inquire dicom tags for
+        meas (dict): The ohif-derived json from a single measurement
+        handle (dict): A specific "handle" containing x,y coordinates
+        counter (int, optional): [description]. Defaults to -1.
+
+    Raises:
+        MissingDICOMTagError: If DICOM Tags are missing, exit.
+
+    Returns:
+        tuple: point in voxel/wcs space plus conversion matrix
+    """
+
+    # This project requests coordinates in "LPS"-world coordinates
+    WCS = "LPS"
+    host = fw_client._fw.api_client.configuration.host[:-8]
+    api_key_prefix = fw_client._fw.api_client.configuration.api_key_prefix[
+        "Authorization"
+    ]
+    api_key_hash = fw_client._fw.api_client.configuration.api_key["Authorization"]
+    api_key = ":".join([host.split("//")[1], api_key_hash])
+
+    voxel_point = np.ones((4, 1))
+    wcs_point = np.ones((4, 1))
+
+    study, series, instance = meas["imagePath"].split("$$$")[:3]
+
+    instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
+
+    instances = io_proxy_wado(api_key, api_key_prefix, project_id, study, series)
+    N = len(instances)
+
+    # The rest of the tags come from the measured slice
+    slice_instance = [i for i in instances if i["00080018"]["Value"][0] == instance][0]
+    try:
+        # (0020, 0032) Image Position (Patient) of three values
+        ImagePosition = {}
+        for j in [1, 2, N]:
+            ImagePosition[j] = np.array(
+                [
+                    i["00200032"]["Value"]
+                    for i in instances
+                    if i["00200013"]["Value"] == [j]
+                ][0]
+            )
+
+        # (0020, 0037) Image Orientation (Patient)
+        ImageOrientation = np.array(slice_instance["00200037"]["Value"])
+        # (0028, 0030) Pixel Spacing
+        PixelSpacing = np.array(slice_instance["00280030"]["Value"])
+
+        # (0020, 0013) Instance Number
+        InstanceNumber = slice_instance["00200013"]["Value"][0]
+        # (0008, 103E) Series Description
+        SeriesDescription = slice_instance["0008103E"]["Value"][0]
+
+    except Exception as e:
+        log.exception(e)
+        raise MissingDICOMTagError(
+            "One of the following required tags is missing from the DICOM Series:\n"
+            "\t(0008, 103E) Series Description,\n"
+            "\t(0020, 0013) Instance Number,\n"
+            "\t(0028, 0030) Pixel Spacing,\n"
+            "\t(0020, 0037) Image Orientation (Patient),\n"
+            "\t(0020, 0032) Image Position (Patient)\n"
+            "Please replace the DICOM Series with a valid copy."
+        )
+
+    # Offsets to turn ohif, one-indexed coordinates to zero and then 1/2-voxel indexed
+    # 1/2-voxel indexed makes the center of the origin voxel map to the origin of the
+    # patient space.
+    one_index_offset = np.array([1.0, 1.0, 1.0, 0]).reshape((4, 1))
+    half_voxel_offest = np.array([0.5, 0.5, 0.5, 0]).reshape((4, 1))
+    offset = one_index_offset + half_voxel_offest
+
+    if counter < 0:
+        voxel_point[:3] = np.array(
+            [
+                meas["handles"][handle]["x"],
+                meas["handles"][handle]["y"],
+                InstanceNumber,
+            ]
+        ).reshape((3, 1))
+    else:
+        voxel_point[:3] = np.array(
+            [
+                meas["handles"][handle][counter]["x"],
+                meas["handles"][handle][counter]["y"],
+                InstanceNumber,
+            ]
+        ).reshape((3, 1))
+
+    ijk_WCS_matrix = create_ijk_to_WCS_matrix(
+        WCS, ImageOrientation, ImagePosition, PixelSpacing
+    )
+
+    wcs_point = np.matmul(ijk_WCS_matrix, voxel_point - offset)
+
+    return (
+        tuple(voxel_point.reshape((4,))[:3]),
+        tuple(wcs_point.reshape((4,))[:3]),
+        ijk_WCS_matrix.tolist(),
+    )
 
 
 def io_proxy_acquire_coords(fw_client, project_id, Length):
@@ -340,8 +512,84 @@ def assess_completed_status(ohif_viewer, user_data):
             completed_status = False
             error_msg = None
         else:
-            completed_status = True
             error_msg = None
+            completed_status = True
+
+            # TODO: This is going to be an "iterative process"
+            #      1. Find all key/values require measurements
+            #      2. Iterate through those key/values to
+            #      3. Ensure that ohifViewer.measurements.{measType}[x].location present
+            #           a. location == value
+            #      4. There are required fields that only appear "when" key/value exists
+            # .... Then again, the form validation is supposed to catch most of this
+            #       before it even gets this far.
+            #  ....THIS IS GETTING TOO TWISTY FOR NOW!!!!
+
+            ohif_config_path = "/tmp/ohif_config.json"
+            ohif_config_dict = json.load(open(ohif_config_path, "r", encoding="utf-8"))
+
+            if ohif_config_dict.get("questions"):
+                questions = ohif_config_dict.get("questions")
+                option_key = "options"
+            elif ohif_config_dict.get("studyForm"):
+                questions = [
+                    x
+                    for x in ohif_config_dict["studyForm"].get("components")
+                    if x.get("key")
+                ]
+                option_key = "values"
+            else:
+                error_msg = (
+                    "The ohif configuration is invalid. Please check and try again."
+                )
+                raise BadConfigError(error_msg)
+
+            measurement_questions = [
+                q
+                for q in questions
+                if (
+                    q.get(option_key)
+                    and [x for x in q[option_key] if x.get("requireMeasurements")]
+                )
+            ]
+            for question in measurement_questions:
+                user_value = user_data.get(question["key"])
+                measurement_required = [
+                    val
+                    for val in question[option_key]
+                    if (
+                        val.get("requireMeasurements")
+                        and val.get("value") == user_value
+                    )
+                ]
+                if measurement_required and ohif_viewer.get("measurements"):
+                    error_msg = None
+                    completed_status = True
+                    # ## THe below is getting TOO TWISTY... Need to reassess!!!
+                    # measurement_types = [
+                    #     "Length",
+                    #     "Bidirectional",
+                    #     "ArrowAnnotate",
+                    #     "Angle",
+                    #     "FreehandRoi",
+                    #     "RectangleRoi",
+                    #     "EllipticalRoi",
+                    # ]
+
+                    # value = user_data[question["key"]]
+                    # option_value = [
+                    #   x for x in question[option_key] if x.get("requireMeasurements")
+                    # ]
+                    # # if measurement is required.
+                    # if value==option_value["value"]:
+                    #     pass
+                elif not measurement_required:
+                    error_msg = None
+                    completed_status = True
+                else:
+                    error_msg = "None of the required measurements are found."
+                    completed_status = False
+
     except Exception as e:
         completed_status = False
         log.error(
@@ -537,37 +785,79 @@ def fill_reader_case_data(fw_client, project_features, session):
                 try:
                     # Eliminating this for now, Doesn't work without the required
                     # Dicom Tags
-                    if False:  # ohif_viewer["measurements"].get("Length"):
-                        for Length in ohif_viewer["measurements"]["Length"]:
-                            prefix = Length["location"].lower().replace(" - ", "_")
-                            case_assignment_status[prefix + "_Length"] = Length[
-                                "length"
-                            ]
-                            (
-                                voxel_start,
-                                voxel_end,
-                                wcs_start,
-                                wcs_end,
-                                ijk_WCS_matrix,
-                                seriesDescription,
-                            ) = io_proxy_acquire_coords(
-                                fw_client, assignment["project_id"], Length
-                            )
-                            case_assignment_status[
-                                prefix + "_seriesDescription"
-                            ] = seriesDescription
-                            case_assignment_status[
-                                prefix + "_seriesInstanceUid"
-                            ] = Length["seriesInstanceUid"]
-                            case_assignment_status[
-                                prefix + "_Voxel_Start"
-                            ] = voxel_start
-                            case_assignment_status[prefix + "_Voxel_End"] = voxel_end
-                            case_assignment_status[prefix + "_WCS_Start"] = wcs_start
-                            case_assignment_status[prefix + "_WCS_End"] = wcs_end
-                            case_assignment_status[
-                                prefix + "_ijk_to_WCS"
-                            ] = ijk_WCS_matrix
+
+                    for meas_type, handles in MEASUREMENT_TYPES.items():
+                        if ohif_viewer["measurements"].get(meas_type):
+                            for meas in ohif_viewer["measurements"].get(meas_type):
+                                voxel_points = []
+                                wcs_points = []
+                                if meas_type is not "FreehandRoi":
+                                    for handle in handles["handles"]:
+                                        (
+                                            voxel_point,
+                                            wcs_point,
+                                            ijk_WCS_matrix,
+                                        ) = io_proxy_convert_point(
+                                            fw_client,
+                                            assignment["project_id"],
+                                            meas,
+                                            handle,
+                                        )
+                                        voxel_points.append(voxel_point)
+                                        wcs_points.append(wcs_point)
+                                elif meas_type is "FreehandRoi":
+                                    for i, _ in enumerate(meas["handles"]["points"]):
+                                        (
+                                            voxel_point,
+                                            wcs_point,
+                                            ijk_WCS_matrix,
+                                        ) = io_proxy_convert_point(
+                                            fw_client,
+                                            assignment["project_id"],
+                                            meas,
+                                            "points",
+                                            counter=i,
+                                        )
+                                        voxel_points.append(voxel_point)
+                                        wcs_points.append(wcs_point)
+                                prefix = meas["location"].lower().replace(" - ", "_")
+                                case_assignment_status[prefix + "_Voxel"] = voxel_points
+                                case_assignment_status[prefix + "_WCS"] = wcs_points
+                                case_assignment_status[
+                                    prefix + "_ijk_to_WCS"
+                                ] = ijk_WCS_matrix
+                        # ######
+                        # Obsolete, but temporarily keeping for reference.
+                        # for Length in ohif_viewer["measurements"]["Length"]:
+                        #     prefix = Length["location"].lower().replace(" - ", "_")
+                        #     case_assignment_status[prefix + "_Length"] = Length[
+                        #         "length"
+                        #     ]
+                        #     (
+                        #         voxel_start,
+                        #         voxel_end,
+                        #         wcs_start,
+                        #         wcs_end,
+                        #         ijk_WCS_matrix,
+                        #         seriesDescription,
+                        #     ) = io_proxy_acquire_coords(
+                        #         fw_client, assignment["project_id"], Length
+                        #     )
+                        #     case_assignment_status[
+                        #         prefix + "_seriesDescription"
+                        #     ] = seriesDescription
+                        #     case_assignment_status[
+                        #         prefix + "_seriesInstanceUid"
+                        #     ] = Length["seriesInstanceUid"]
+                        #     case_assignment_status[
+                        #         prefix + "_Voxel_Start"
+                        #     ] = voxel_start
+                        #     case_assignment_status[prefix + "_Voxel_End"] = voxel_end
+                        #     case_assignment_status[prefix + "_WCS_Start"] = wcs_start
+                        #     case_assignment_status[prefix + "_WCS_End"] = wcs_end
+                        #     case_assignment_status[
+                        #         prefix + "_ijk_to_WCS"
+                        #     ] = ijk_WCS_matrix
                 except Exception as e:
                     completed_status = False
                     error_msg = (
@@ -581,7 +871,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                     log.exception(e,)
 
                     case_assignment_status["completed"] = completed_status
-                    case_assignment_status["additionalNotes"] += error_msg
+                    case_assignment_status["notes"] += error_msg
 
         case_assignments.append(case_assignment_status)
 
