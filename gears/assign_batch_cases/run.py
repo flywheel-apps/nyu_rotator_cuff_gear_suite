@@ -38,7 +38,7 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "test_group"  # "readers"
+        reader_group_id = "readers"
 
         # If gear is run within the Readers group, error and exit
         if analysis.parents["group"] == reader_group_id:
