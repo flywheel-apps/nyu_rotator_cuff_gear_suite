@@ -85,8 +85,7 @@ def main(context):
 
 
 if __name__ == "__main__":
-    tst = "/home/joshuajacobs/Projects/2020.10.12.CCIC/Data/gather_cases_test"
-    with GearToolkitContext(tst) as gear_context:
+    with GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

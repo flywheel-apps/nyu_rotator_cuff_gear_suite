@@ -98,8 +98,7 @@ def main(context):
 
 
 if __name__ == "__main__":
-    tst = "/home/joshuajacobs/Projects/2020.10.12.CCIC/Data/assign-batch-cases-0.0.1-dev-c_6037d4b90e9332553a1e4d59"
-    with GearToolkitContext(tst) as gear_context:
+    with GearToolkitContext() as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 
