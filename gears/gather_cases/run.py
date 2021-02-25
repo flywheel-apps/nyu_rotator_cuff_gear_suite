@@ -32,7 +32,7 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "readers"
+        reader_group_id = "test_group"  # "readers"
 
         # If gear is run within the Readers group, error and exit
         if analysis.parents["group"] == reader_group_id:
@@ -48,7 +48,7 @@ def main(context):
             )
 
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
-            context, source_project
+            context.client, source_project
         )
 
         source_sessions_df.to_csv(
@@ -85,7 +85,8 @@ def main(context):
 
 
 if __name__ == "__main__":
-    with GearToolkitContext() as gear_context:
+    tst = "/home/joshuajacobs/Projects/2020.10.12.CCIC/Data/gather_cases_test"
+    with GearToolkitContext(tst) as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 

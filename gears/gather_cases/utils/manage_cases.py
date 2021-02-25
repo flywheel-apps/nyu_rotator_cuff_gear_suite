@@ -109,19 +109,18 @@ class BadConfigError(Exception):
         self.message = message
 
 
-def populate_case_assessment_rec(fw_client, source_project):
+def populate_case_assessment_rec(source_project):
     """
+    Populates the CASE_ASSESSMENT_REC dictionary with keys from ohif configuration.
+
     Args:
-        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
     """
     ohif_config_path = "/tmp/ohif_config.json"
     if source_project.get_file("ohif_config.json"):
         source_project.download_file("ohif_config.json", ohif_config_path)
         ohif_config_dict = json.load(open(ohif_config_path, "r", encoding="utf-8"))
-        # TODO: make this dynamic for the form.io structure:
-        # ohif_config_dict["studyForm"]["components"]...
-        # Assuming that the old form will be depricated....
+
         if ohif_config_dict.get("questions"):
             questions = ohif_config_dict.get("questions")
         elif ohif_config_dict.get("studyForm"):
@@ -238,7 +237,7 @@ def change_world_coordinate_system(WCS):
 
 def create_ijk_to_WCS_matrix(WCS, ImageOrientation, ImagePosition, PixelSpacing):
     """
-    create_ijk_to_WCS_matrix [summary]
+    Create the voxel-space to world-coordinate-system (WCS) from DICOM tags.
 
     Args:
         WCS (str): Three letter string identifying coordinate system (e.g "RAS")
@@ -275,7 +274,7 @@ def create_ijk_to_WCS_matrix(WCS, ImageOrientation, ImagePosition, PixelSpacing)
     return ijk_WCS_matrix
 
 
-def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
+def io_proxy_convert_point(fw_client, project_id, meas, handle, handle_index=-1):
     """
     Use io_proxy to retrieve voxel/world coordinates and transformation matrix.
 
@@ -284,7 +283,8 @@ def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
         project_id (str): The project id to inquire dicom tags for
         meas (dict): The ohif-derived json from a single measurement
         handle (dict): A specific "handle" containing x,y coordinates
-        counter (int, optional): [description]. Defaults to -1.
+        handle_index (int, optional): Used to interate through the "points" handle of a 
+            "freehand" ROI. Defaults to -1.
 
     Raises:
         MissingDICOMTagError: If DICOM Tags are missing, exit.
@@ -355,7 +355,7 @@ def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
     half_voxel_offest = np.array([0.5, 0.5, 0.5, 0]).reshape((4, 1))
     offset = one_index_offset + half_voxel_offest
 
-    if counter < 0:
+    if handle_index < 0:
         voxel_point[:3] = np.array(
             [
                 meas["handles"][handle]["x"],
@@ -366,8 +366,8 @@ def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
     else:
         voxel_point[:3] = np.array(
             [
-                meas["handles"][handle][counter]["x"],
-                meas["handles"][handle][counter]["y"],
+                meas["handles"][handle][handle_index]["x"],
+                meas["handles"][handle][handle_index]["y"],
                 InstanceNumber,
             ]
         ).reshape((3, 1))
@@ -385,6 +385,8 @@ def io_proxy_convert_point(fw_client, project_id, meas, handle, counter=-1):
     )
 
 
+# TODO: This function is generalized by io_proxy_convert_point and should be considered
+#       obsolete.
 def io_proxy_acquire_coords(fw_client, project_id, Length):
     """
     Acquires coordinates and conversion matrix from dicom tags in io-proxy
@@ -787,12 +789,13 @@ def fill_reader_case_data(fw_client, project_features, session):
                     # Dicom Tags
 
                     for meas_type, handles in MEASUREMENT_TYPES.items():
+                        meas_handles = handles["handles"]
                         if ohif_viewer["measurements"].get(meas_type):
                             for meas in ohif_viewer["measurements"].get(meas_type):
                                 voxel_points = []
                                 wcs_points = []
                                 if meas_type is not "FreehandRoi":
-                                    for handle in handles["handles"]:
+                                    for handle in meas_handles:
                                         (
                                             voxel_point,
                                             wcs_point,
@@ -816,7 +819,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                                             assignment["project_id"],
                                             meas,
                                             "points",
-                                            counter=i,
+                                            handle_index=i,
                                         )
                                         voxel_points.append(voxel_point)
                                         wcs_points.append(wcs_point)
@@ -826,7 +829,8 @@ def fill_reader_case_data(fw_client, project_features, session):
                                 case_assignment_status[
                                     prefix + "_ijk_to_WCS"
                                 ] = ijk_WCS_matrix
-                        # ######
+                        # #####
+                        # TODO: Eliminate
                         # Obsolete, but temporarily keeping for reference.
                         # for Length in ohif_viewer["measurements"]["Length"]:
                         #     prefix = Length["location"].lower().replace(" - ", "_")
@@ -920,7 +924,7 @@ def gather_case_data_from_readers(fw_client, source_project):
         ]
     )
     # Populate case assessment record from source project's ohif_config.json
-    populate_case_assessment_rec(fw_client, source_project)
+    populate_case_assessment_rec(source_project)
 
     # Create a DataFrame to record the state of each assessment by a reader
     case_assessment_df = pd.DataFrame(columns=CASE_ASSESSMENT_REC.keys())

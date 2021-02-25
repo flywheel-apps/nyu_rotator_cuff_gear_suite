@@ -38,7 +38,7 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "readers"
+        reader_group_id = "test_group"  # "readers"
 
         # If gear is run within the Readers group, error and exit
         if analysis.parents["group"] == reader_group_id:
@@ -98,7 +98,8 @@ def main(context):
 
 
 if __name__ == "__main__":
-    with GearToolkitContext() as gear_context:
+    tst = "/home/joshuajacobs/Projects/2020.10.12.CCIC/Data/assign-batch-cases-0.0.1-dev-c_6037d4b90e9332553a1e4d59"
+    with GearToolkitContext(tst) as gear_context:
         gear_context.init_logging()
         exit_status = main(gear_context)
 
