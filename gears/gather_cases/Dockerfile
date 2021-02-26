@@ -1,7 +1,7 @@
 # Dockerfile exported by GearBuilderGUI.Stash edits before export again
 
 # Inheriting from established docker image:
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
 # Inheriting from established docker image:
 LABEL maintainer="Flywheel <support@flywheel.io>"

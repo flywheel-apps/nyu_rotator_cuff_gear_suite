@@ -1,8 +1,8 @@
-flywheel-gear-toolkit==0.1.1
-numpy==1.18.2
-scipy==1.5.2
-pandas==0.24.2
-pydicom==1.4.2
+flywheel-gear-toolkit==0.1.4
+numpy==1.20.1
+scipy==1.6.1
+pandas==1.2.2
+pydicom==2.1.2
 python-dateutil==2.8.1
-pytz==2020.1
-tzlocal==2.1b1
+pytz==2021.1
+tzlocal==2.1

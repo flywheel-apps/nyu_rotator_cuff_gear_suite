@@ -223,7 +223,7 @@ def change_world_coordinate_system(WCS):
 
     LPS = "LPS"
     if (
-        (len(WCS) is not 3)
+        (len(WCS) != 3)
         or (WCS[0] not in ["L", "R"])
         or (WCS[1] not in ["A", "P"])
         or (WCS[2] not in ["S", "I"])
@@ -794,7 +794,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                             for meas in ohif_viewer["measurements"].get(meas_type):
                                 voxel_points = []
                                 wcs_points = []
-                                if meas_type is not "FreehandRoi":
+                                if meas_type != "FreehandRoi":
                                     for handle in meas_handles:
                                         (
                                             voxel_point,
@@ -808,7 +808,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                                         )
                                         voxel_points.append(voxel_point)
                                         wcs_points.append(wcs_point)
-                                elif meas_type is "FreehandRoi":
+                                elif meas_type == "FreehandRoi":
                                     for i, _ in enumerate(meas["handles"]["points"]):
                                         (
                                             voxel_point,
