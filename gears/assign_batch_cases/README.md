@@ -2,7 +2,7 @@
 
 The `assign-batch-cases` gear is used to assign cases to readers using the rows of `csv` file for each specific "assignment". Each case and reader must exist for the assignment to be successful. Furthermore, each reader must be available for that assignment (number of assignments less than **max_cases**) and each case must me assigned to less than **case_coverage** readers.
 
-The **batch_csv** file, used as an input, must have `session_id`, `session_label`, and `reader_email` as columns. The sessions referenced may come from any "Master Project" and must not come from a "Reader Project". On assignment, each case along with its acquisitions, files, and metadata is copied to a reader's project for assessment by that reader.
+The **batch_csv** file, used as an input, must have `session_id`, `session_label`, and `reader_email` as columns. The sessions referenced may come from any "Master Project" that host those specific sessions and must not come from a "Reader Project". On assignment, each case along with its acquisitions, files, and metadata is copied to a reader's project for assessment by that reader.
 
 On completion of this Gear any remaining coordination data is recorded in the associated Master Project and reader projects.
 
@@ -17,6 +17,8 @@ Successfully executing the `assign-readers` gear is a prerequisite for this gear
 ## Usage Notes
 
 The `assign-batch-cases` gear assigns multiple cases as specified in a user-supplied `csv` file. Each assignment is validated by the existence of the case in a Master Project, the current assignments of that case (e.g. **num_assignments**< **case_coverage**), the availability of the specified reader (e.g. **num_assignments**<**max_cases**). On execution, the gear distributes each case to the readers specified in the csv.
+
+The gear is launched from the session or project level.  The sessions listed in the `csv` file must be a part of the Master Project that the gear is launched within. Sessions listed from other projects will cause an error.
 
 ### Inputs
 
@@ -68,3 +70,7 @@ On full or partial failure over all assignments in **batch_csv**, a **batch_resu
   * `origin_path`: The resolver path of the source data
   * `export_path`: The resolver path of the destination data
   * `archive_path`: The resolver path of archived data (not used here)
+
+## Future Work:
+
+* Add functionality to include **assignment_reason** from [**Assign-Single-Case**](./gears/assign_single_case/).  This would allow batch adjustment of **case_coverage** across affected sessions.

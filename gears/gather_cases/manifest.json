@@ -1,6 +1,6 @@
 {
     "name": "gather-cases",
-    "label": "3. Gather Case Data from Readers",
+    "label": "4. Gather Case Data from Readers",
     "description": "This gear gathers all assessed case data from the reader projects. The assessed case data is collated with data from other readers into the origin case of the master project.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/gather_cases",
     "cite": "",
-    "version": "0.1.9-dev-d",
+    "version": "0.1.9-dev-e",
     "custom": {
-        "docker-image": "flywheel/gather-cases:0.1.9-dev-d",
+        "docker-image": "flywheel/gather-cases:0.1.9-dev-e",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/gather-cases:0.1.9-dev-d"
+            "image": "flywheel/gather-cases:0.1.9-dev-e"
         }
     },
     "inputs": {

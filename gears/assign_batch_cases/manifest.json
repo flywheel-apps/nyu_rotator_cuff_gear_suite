@@ -1,6 +1,6 @@
 {
     "name": "assign-batch-cases",
-    "label": "2. Assign Batch Cases",
+    "label": "3. Assign Batch Cases",
     "description": "This gear assigns a batch of cases to readers from a master project given tabular data. Each case is assessed by a \"case_coverage\" number of readers. Each reader elects to have a maximum number of cases (\"max_cases\") to assess. If this gear attempts to assign more than \"max_cases\", the assignment is not performed and a warning is given.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",

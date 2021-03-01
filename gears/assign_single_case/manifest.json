@@ -1,6 +1,6 @@
 {
     "name": "assign-single-case",
-    "label": "4. Assign Single Case to Reader",
+    "label": "5. Assign Single Case to Reader",
     "description": "This gear assigns a single case to a specified readers from a master project given constraints. Each case is assessed by a \"case_coverage\" number of readers. If the case is being assigned to an additional reader, the \"case_coverage\" is incremented. Each reader elects to have a maximum number of cases (\"max_cases\") to assess. If this gear attempts to assign more than \"max_cases\", the gear fails with message.",
     "author": "Flywheel",
     "maintainer": "Flywheel <support@flywheel.io>",
