@@ -51,3 +51,8 @@ The gears above keep track of case assignments and assignment status in the meta
 **NOTE:** No gear in this suite can be run concurrently with any other gear in this suite. This is done to ensure the integrity of the data and metadata at each step.
 
 **NOTE:** Gears run by a user without administrative priviledges on all involved projects will fail.
+
+## **TODOs:**
+
+* Eliminate embedded `ohif_config.json` files from ever making into a reader project. ALWAYS insist that an `ohif_config.json` file exists in the Master Project or FAIL gears!!!
+* Combine the functionality of `assign-batch-cases`, `assign-cases`, and `assign-single-case`.
