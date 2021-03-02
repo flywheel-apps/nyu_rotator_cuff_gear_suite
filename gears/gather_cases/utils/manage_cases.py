@@ -18,6 +18,9 @@ CASE_ASSESSMENT_REC = {
     "completed_timestamp": None,
 }
 
+# These "Measurement Types" often have a "measurement" component of their own that could
+# be reported on.  e.g. "Length" has "length" key.  This may or may not be desired to
+# include into the report.
 MEASUREMENT_TYPES = {
     "Length": {"handles": ["start", "end"]},
     "Bidirectional": {
