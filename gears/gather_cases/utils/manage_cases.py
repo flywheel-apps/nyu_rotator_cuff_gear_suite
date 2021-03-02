@@ -22,7 +22,7 @@ CASE_ASSESSMENT_REC = {
 # be reported on.  e.g. "Length" has "length" key.  This may or may not be desired to
 # include into the report.
 MEASUREMENT_TYPES = {
-    "Length": {"handles": ["start", "end"]},
+    "Length": {"handles": ["start", "end"], "measures": ["length"]},
     "Bidirectional": {
         "handles": ["start", "end", "perpendicularStart", "perpendicularEnd"]
     },
