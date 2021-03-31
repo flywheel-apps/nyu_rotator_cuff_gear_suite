@@ -170,8 +170,10 @@ def find_or_create_group(fw_client, group_id, group_label):
     found_groups = fw_client.groups.find(f'_id="{group_id}"')
 
     if len(found_groups) > 0:
+        log.info(f"Found Existing Group {group_id}")
         return found_groups[0].reload(), []
-
+    
+    log.info(f"No existing group {group_id}, creating...")
     group_id = fw_client.add_group(flywheel.Group(group_id, group_label))
 
     group = fw_client.groups.find_first(f'_id="{group_id}"')
@@ -372,6 +374,7 @@ def export_session(fw_client, source_session, dest_project, export_info=False):
             log.info(
                 "CREATING ACQUISITION CONTAINER: [label=%s]", source_acquisition.label
             )
+            source_acquisition = source_acquisition.reload()
             _, acq_export, created_container = export_acquisition(
                 fw_client, source_acquisition, dest_session
             )
@@ -426,9 +429,12 @@ def export_acquisition(fw_client, source_acquisition, dest_session):
     dest_acquisition = dest_session.add_acquisition(acquisition_metadata)
 
     created_container = define_created(dest_acquisition)
-
-    for tag in source_acquisition.tags:
-        dest_acquisition.add_tag(tag)
+    
+    source_tags = source_acquisition.tags
+    
+    if source_tags is not None:
+        for tag in source_acquisition.tags:
+            dest_acquisition.add_tag(tag)
 
     # Export the individual files in each acquisition
     log.info("Exporting files to %s...", dest_acquisition.label)

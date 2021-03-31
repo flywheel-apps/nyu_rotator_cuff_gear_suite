@@ -1,5 +1,5 @@
-flywheel-sdk==14.3.1
-flywheel-gear-toolkit==0.1.1
+flywheel-sdk
+flywheel-gear-toolkit
 numpy==1.18.2
 scipy==1.5.2
 pandas==0.24.2

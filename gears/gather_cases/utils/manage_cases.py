@@ -1,6 +1,9 @@
 import logging
+import codecs
 from ast import literal_eval as leval
 from pathlib import Path
+import json
+
 
 import numpy as np
 import pandas as pd
@@ -92,7 +95,8 @@ def populate_case_assessment_rec(fw_client, source_project):
     ohif_config_path = "/tmp/ohif_config.json"
     if source_project.get_file("ohif_config.json"):
         source_project.download_file("ohif_config.json", ohif_config_path)
-        ohif_dict = json.load(open(ohif_config_path, "r"))
+        ohif_config_file = codecs.open(ohif_config_path, "r", "utf-8")
+        ohif_dict = json.load(ohif_config_file)
         for question in ohif_dict["questions"]:
             key = question["key"]
             CASE_ASSESSMENT_REC[key] = None
@@ -102,7 +106,7 @@ def populate_case_assessment_rec(fw_client, source_project):
             '"ohif_config.json". Ensure its existence and validity before running '
             "this gear again."
         )
-        raise MissingFileError(ErroMSG)
+        raise MissingFileError(ErrorMSG)
 
 
 def io_proxy_wado(
