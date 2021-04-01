@@ -524,7 +524,8 @@ def fill_reader_case_data(fw_client, project_features, session):
 
                 # Eliminate carriage return and present error message
                 additional_notes = case_assignment_status.get("notes", "")
-                additional_notes = additional_notes.replace("\n", " ")
+                if isinstance(additional_notes, str):
+                    additional_notes = additional_notes.replace("\n", " ")
                 if error_msg:
                     additional_notes += error_msg
                 case_assignment_status["notes"] = additional_notes
