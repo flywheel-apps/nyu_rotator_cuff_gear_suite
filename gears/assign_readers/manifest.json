@@ -51,6 +51,11 @@
             "optional": true,
             "description": "The maximum number of cases the reader will assess. This value takes precedence over an entry in the csv file.",
             "type": "integer"
+        },
+        "reader_group_id": {
+            "optional": true,
+            "description": "The flywheel ID of the readers group (default is 'readers')",
+            "type": "string"
         }
     },
     "command": "/flywheel/v0/run.py"

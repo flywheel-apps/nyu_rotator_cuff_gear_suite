@@ -22,6 +22,7 @@ from utils.manage_cases import (
 log = logging.getLogger(__name__)
 
 
+
 def main(context):
     try:
         fw_client = context.client
@@ -33,10 +34,21 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "readers"
+        
+        reader_group_id = context.config.get("reader_group_id")
+        if reader_group_id is None:
+            reader_group_id = "readers"
+        
+        try:
+            reader_group = fw_client.get_group(reader_group_id)
+        except Exception as e:
+            log.warning(f"No group with the ID {reader_group_id}.  Group will be created.")
+            reader_group_label = reader_group_id
+            
+        reader_group_label = reader_group.label
         # Find or create reader group
         reader_group, _created_data = find_or_create_group(
-            fw_client, reader_group_id, "Readers"
+            fw_client, reader_group_id, reader_group_label
         )
         created_data.extend(_created_data)
 
