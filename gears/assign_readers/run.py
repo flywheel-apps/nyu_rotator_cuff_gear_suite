@@ -34,10 +34,11 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
+        source_group_id = source_project.group
         
         reader_group_id = context.config.get("reader_group_id")
         if reader_group_id is None:
-            reader_group_id = "readers"
+            reader_group_id = source_group_id
         
         try:
             reader_group = fw_client.get_group(reader_group_id)
@@ -51,12 +52,14 @@ def main(context):
             fw_client, reader_group_id, reader_group_label
         )
         created_data.extend(_created_data)
-
-        # If gear is run within the Readers group, error and exit
-        if analysis.parents["group"] == reader_group_id:
-            raise InvalidGroupError(
-                'This gear cannot be run from within the "Readers" group!'
-            )
+        
+        # TODO: Josh put this in here to begin with, probably extracts all projects form this group
+        # TODO: link this whole thing through the rest of the gears.
+        # # If gear is run within the Readers group, error and exit
+        # if analysis.parents["group"] == reader_group_id:
+        #     raise InvalidGroupError(
+        #         'This gear cannot be run from within the "Readers" group!'
+        #     )
 
         reader_csv_path = define_reader_csv(context)
 
