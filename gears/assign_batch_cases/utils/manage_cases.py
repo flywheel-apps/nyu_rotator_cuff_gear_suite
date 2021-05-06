@@ -260,7 +260,8 @@ def initialize_dataframes(fw_client, reader_group):
     )
 
     # Initialize destination projects dataframe
-    for reader_proj in fw_client.projects.find(f'group="{reader_group.id}"'):
+    #for reader_proj in fw_client.projects.find(f'group="{reader_group.id}"'):
+    for reader_proj in fw_client.projects.find(f"group={reader_group.id},label=~Reader [0-9][0-9]?"):
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
         # Valid roles for readers are "read-write" and "read-only"
@@ -437,8 +438,9 @@ def distribute_batch_to_readers(
     created_data = []
 
     # Find or create reader group
+    reader_group_label = fw_client.get_group(reader_group_id).label
     reader_group, _created_data = find_or_create_group(
-        fw_client, reader_group_id, "Readers"
+        fw_client, reader_group_id, reader_group_label
     )
     created_data.extend(_created_data)
 
