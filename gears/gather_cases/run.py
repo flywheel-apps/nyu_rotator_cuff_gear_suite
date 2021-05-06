@@ -30,18 +30,19 @@ def main(context):
 
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
-        source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "readers"
+        source_project = fw_client.get_project(analysis.parents["project"])
+        reader_group_id = source_project.group
 
+        # TODO: Make sure this doesn't mess other things up
         # If gear is run within the Readers group, error and exit
-        if analysis.parents["group"] == reader_group_id:
-            raise InvalidGroupError(
-                'This gear cannot be run from within the "Readers" group!'
-            )
+        # if analysis.parents["group"] == reader_group_id:
+        #     raise InvalidGroupError(
+        #         'This gear cannot be run from within the "Readers" group!'
+        #     )
 
         # Check for projects in the reader group
         group = fw_client.get(reader_group_id).reload()
-        if len(group.projects()) == 0:
+        if len(group.projects.find("label=~Reader [0-9][0-9]?")) == 0:
             raise UninitializedGroupError(
                 'The "Readers" group has not been initialized.'
             )
@@ -63,6 +64,7 @@ def main(context):
                 "Ensure there are cases assigned to readers by running both the "
                 "`assign-readers` and `assign-cases` gears with valid configuration."
             )
+
     except (
         DuplicateJobError,
         InsufficientPermissionsError,
