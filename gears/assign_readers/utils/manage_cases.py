@@ -347,7 +347,7 @@ def create_or_update_reader_projects(
     """
 
     # Generate list of all projects in this group
-    group_projects = fw_client.projects.find(f'group="{group.id}"')
+    group_projects = fw_client.projects.find(f'group="{group.id}",label=~Reader [0-9][0-9]?')
 
     # Keep track of the created containers, in case of "rollback"
     created_data = []

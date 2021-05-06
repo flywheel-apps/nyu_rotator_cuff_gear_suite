@@ -30,13 +30,15 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = "readers"
+        reader_group_id = source_project.group
 
-        # If gear is run within the Readers group, error and exit
-        if analysis.parents["group"] == reader_group_id:
-            raise InvalidGroupError(
-                'This gear cannot be run from within the "Readers" group!'
-            )
+
+        # TODO: Verify that this isn't fucking something up.
+        # # If gear is run within the Readers group, error and exit
+        # if analysis.parents["group"] == reader_group_id:
+        #     raise InvalidGroupError(
+        #         'This gear cannot be run from within the "Readers" group!'
+        #     )
 
         source_sess_df, dest_proj_df, exported_data_df = distribute_cases_to_readers(
             fw_client, source_project, reader_group_id, context.config["case_coverage"],
