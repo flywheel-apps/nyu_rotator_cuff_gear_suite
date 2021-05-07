@@ -215,15 +215,28 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         for role in fw_client.get_all_roles()
         if role.label in ["read-write", "read-only"]
     ]
-
-    group_reader_ids = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group_projects
-    ]
+    
+    log.info(f"found roles: {proj_roles}")
+    
+    group_reader_ids = []
+    for proj in group_projects:
+        log.info(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.info(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+            
+            log.info(f"roles match {role_match}")
+            if role_match:
+                group_reader_ids.extend(perm.id)
+    
+    # group_reader_ids = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group_projects
+    # ]
 
     for index in readers_df.index:
         reader_id = readers_df.email[index]
@@ -299,14 +312,28 @@ def instantiate_new_readers(fw_client, group, readers_df):
         if role.label in ["read-write", "read-only"]
     ]
 
-    project_readers = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group.projects()
-    ]
+    # project_readers = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group.projects()
+    # ]
+
+
+    project_readers = []
+    for proj in group.projects():
+        log.info(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.info(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+
+            log.info(f"roles match {role_match}")
+            if role_match:
+                project_readers.extend(perm.id)
+    
+    
     for indx in readers_df[~readers_df.email.isin(project_readers)].index:
         readers_to_instantiate.append(
             (readers_df.email[indx], int(readers_df.max_cases[indx]))
@@ -347,7 +374,10 @@ def create_or_update_reader_projects(
     """
 
     # Generate list of all projects in this group
-    group_projects = fw_client.projects.find(f'group="{group.id}"')
+    log.info(f"Looking for projects in group {group.label}")
+    group_projects = fw_client.projects.find(f'group={group.id}')
+    log.info(f"Found {len(group_projects)}")
+    
 
     # Keep track of the created containers, in case of "rollback"
     created_data = []

@@ -232,7 +232,7 @@ def create_project(fw_client, project_label, group, user_id, project_info=None):
 
     if not project_info:
         project_info = {}
-
+    log.info(f"Adding Project {project_label}")
     new_project = group.add_project({"label": project_label})
     apply_group_template_to_project(fw_client, new_project, group)
 
