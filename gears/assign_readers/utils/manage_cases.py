@@ -299,14 +299,28 @@ def instantiate_new_readers(fw_client, group, readers_df):
         if role.label in ["read-write", "read-only"]
     ]
 
-    project_readers = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group.projects()
-    ]
+
+    project_readers = []
+    for proj in group.projects():
+        log.debug(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.debug(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+
+            log.debug(f"roles match {role_match}")
+            if role_match:
+                project_readers.extend(perm.id)
+
+
+    # project_readers = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group.projects()
+    # ]
+    
     for indx in readers_df[~readers_df.email.isin(project_readers)].index:
         readers_to_instantiate.append(
             (readers_df.email[indx], int(readers_df.max_cases[indx]))
