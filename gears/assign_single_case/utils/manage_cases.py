@@ -203,14 +203,25 @@ def check_valid_reader(fw_client, reader_id, group_id):
         if role.label in ["read-write", "read-only"]
     ]
 
-    valid_reader_ids = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group_projects
-    ]
+    # valid_reader_ids = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group_projects
+    # ]
+    #
+    
+    valid_reader_ids = []
+    for proj in group_projects:
+        log.debug(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.debug(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+            log.debug(f"roles match {role_match}")
+            if role_match:
+                valid_reader_ids.extend(perm.id)
 
     if reader_id in valid_reader_ids:
         return True

@@ -206,14 +206,26 @@ def check_valid_reader(fw_client, reader_id, group_id):
         if role.label in ["read-write", "read-only"]
     ]
 
-    valid_reader_ids = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group_projects
-    ]
+    # valid_reader_ids = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group_projects
+    # ]
+
+    valid_reader_ids = []
+    for proj in group_projects:
+        log.debug(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.debug(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+            log.debug(f"roles match {role_match}")
+            if role_match:
+                valid_reader_ids.extend(perm.id)
+
+
 
     reader_project = None
 
@@ -270,11 +282,20 @@ def initialize_dataframes(fw_client, reader_group):
             for role in fw_client.get_all_roles()
             if role.label in ["read-write", "read-only"]
         ]
-        reader_id = [
-            perm.id
-            for perm in reader_proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
+
+        reader_id = []
+
+        for perm in reader_proj.permissions:
+            if set(perm.role_ids).intersection(proj_roles):
+                reader_id.append(perm.id)
+        
+        # reader_id = [
+        #     perm.id
+        #     for perm in reader_proj.permissions
+        #     if set(perm.role_ids).intersection(proj_roles)
+        # ][0]
+        
+        
         # Fill the dataframe with project data.
         dest_projects_df.loc[dest_projects_df.shape[0] + 1] = [
             reader_proj.id,

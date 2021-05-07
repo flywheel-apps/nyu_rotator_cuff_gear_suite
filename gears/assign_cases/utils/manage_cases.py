@@ -175,11 +175,13 @@ def initialize_dataframes(fw_client, reader_group):
             for role in fw_client.get_all_roles()
             if role.label in ["read-write", "read-only"]
         ]
+        
         reader_id = [
             perm.id
             for perm in reader_proj.permissions
             if set(perm.role_ids).intersection(proj_roles)
         ][0]
+        
         # Fill the dataframe with project data.
         dest_projects_df.loc[dest_projects_df.shape[0] + 1] = [
             reader_proj.id,
@@ -355,11 +357,18 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
                 if role.label in ["read-write", "read-only"]
             ]
 
-            reader_id = [
-                perm.id
-                for perm in project.permissions
-                if set(perm.role_ids).intersection(proj_roles)
-            ][0]
+            reader_id = []
+            
+            for perm in project.permissions:
+                if set(perm.role_ids).intersection(proj_roles):
+                    reader_id.append(perm.id)
+                    
+            # reader_id = [
+            #     perm.id
+            #     for perm in project.permissions
+            #     if set(perm.role_ids).intersection(proj_roles)
+            # ][0]
+            # 
             try:
                 # export the session to the reader project
                 dest_session, _exported_data, _created_data = export_session(

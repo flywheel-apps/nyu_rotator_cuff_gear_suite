@@ -216,14 +216,25 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         if role.label in ["read-write", "read-only"]
     ]
 
-    group_reader_ids = [
-        [
-            perm.id
-            for perm in proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
-        for proj in group_projects
-    ]
+    group_reader_ids = []
+    for proj in group_projects:
+        log.debug(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.debug(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+            log.debug(f"roles match {role_match}")
+            if role_match:
+                group_reader_ids.extend(perm.id)
+                
+                
+    # group_reader_ids = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group_projects
+    # ]
 
     for index in readers_df.index:
         reader_id = readers_df.email[index]
