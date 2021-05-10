@@ -347,6 +347,8 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         # and export that session to each of those readers.
         # Iterate through the assign_reader_projs, export the session to each of them,
         # record results
+        log.debug(f"found {len(assign_reader_projs)} reader projects")
+        
         for project_id in assign_reader_projs:
             # grab the reader_id from the selected project
             project = fw_client.get(project_id)
@@ -357,18 +359,19 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
                 if role.label in ["read-write", "read-only"]
             ]
 
-            reader_id = []
+            reader_id = ''
             
             for perm in project.permissions:
                 if set(perm.role_ids).intersection(proj_roles):
-                    reader_id.append(perm.id)
+                    reader_id = perm.id
                     
             # reader_id = [
             #     perm.id
             #     for perm in project.permissions
             #     if set(perm.role_ids).intersection(proj_roles)
             # ][0]
-            # 
+            #
+            
             try:
                 # export the session to the reader project
                 dest_session, _exported_data, _created_data = export_session(

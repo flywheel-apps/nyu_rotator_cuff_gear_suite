@@ -372,7 +372,7 @@ def create_or_update_reader_projects(
     """
 
     # Generate list of all projects in this group
-    group_projects = fw_client.projects.find(f'group="{group.id}",label=~Reader [0-9][0-9]?')
+    group_projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?')
 
     # Keep track of the created containers, in case of "rollback"
     created_data = []
@@ -411,9 +411,10 @@ def create_or_update_reader_projects(
     ohif_config_path = None
     if readers_to_instantiate:
         ohif_config_path = confirm_or_create_ohif_config(master_project)
-
+    
     for reader, _max_cases in readers_to_instantiate:
-        reader_number = len(group.projects()) + 1
+        # reader_number = len(group.projects()) + 1
+        reader_number = len(fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?')) + 1
         project_label = "Reader " + str(reader_number)
         project_info = {
             "project_features": {"assignments": [], "max_cases": _max_cases}
