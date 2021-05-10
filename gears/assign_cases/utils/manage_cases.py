@@ -174,11 +174,25 @@ def initialize_dataframes(fw_client, reader_group):
             for role in fw_client.get_all_roles()
             if role.label in ["read-write", "read-only"]
         ]
-        reader_id = [
-            perm.id
-            for perm in reader_proj.permissions
-            if set(perm.role_ids).intersection(proj_roles)
-        ][0]
+        
+        # reader_id = [
+        #     perm.id
+        #     for perm in reader_proj.permissions
+        #     if set(perm.role_ids).intersection(proj_roles)
+        # ][0]
+
+        reader_id = []
+        for perm in reader_proj.permissions:
+            log.info(f"searching for permissions in {reader_proj.label}")
+            if set(perm.role_ids).intersection(proj_roles):
+                # In the old version Josh made an array and then returned [0], no matter what.  
+                # In this version we'll just take the first one and break
+                reader_id = perm.id
+                break
+                
+                
+        
+        
         # Fill the dataframe with project data.
         dest_projects_df.loc[dest_projects_df.shape[0] + 1] = [
             reader_proj.id,
@@ -350,11 +364,19 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
                 if role.label in ["read-write", "read-only"]
             ]
 
-            reader_id = [
-                perm.id
-                for perm in project.permissions
-                if set(perm.role_ids).intersection(proj_roles)
-            ][0]
+            # reader_id = [
+            #     perm.id
+            #     for perm in project.permissions
+            #     if set(perm.role_ids).intersection(proj_roles)
+            # ][0]
+
+            reader_id = ''
+            for perm in project.permissions:
+                if set(perm.role_ids).intersection(proj_roles):
+                    reader_id = perm.id
+                    break
+            
+            
             try:
                 # export the session to the reader project
                 dest_session, _exported_data, _created_data = export_session(
