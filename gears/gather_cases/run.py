@@ -16,6 +16,7 @@ from utils.manage_cases import (
     MissingDICOMTagError,
     UninitializedGroupError,
     gather_case_data_from_readers,
+    generate_summary_report,
 )
 
 log = logging.getLogger(__name__)
@@ -49,6 +50,12 @@ def main(context):
 
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
             fw_client, source_project
+        )
+
+        progress_report = generate_summary_report(fw_client, case_assessment_df)
+
+        progress_report.to_csv(
+            str(context.output_dir / "reader_progress_report.csv"), index=False
         )
 
         source_sessions_df.to_csv(

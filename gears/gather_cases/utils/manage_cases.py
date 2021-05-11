@@ -404,6 +404,7 @@ def fill_session_attributes(fw_client, project_features, session):
         "completed": 0,
     }
 
+    # This crashes if assigned sessions have been deleted for whatever reason
     for assignment in session_features["assignments"]:
         assigned_session = fw_client.get(assignment["session_id"])
         assigned_session = assigned_session.reload()
@@ -595,6 +596,7 @@ def gather_case_data_from_readers(fw_client, source_project):
     1) Check for assignment status
     2) if assigned, check for completion status (classified, measured)
     3) record completion status in metadata and spreadsheet.
+    4) Generates a summary status sheet.
 
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
@@ -655,3 +657,77 @@ def gather_case_data_from_readers(fw_client, source_project):
     source_project.update_info({"project_features": project_features})
 
     return source_sessions_df, case_assessment_df
+
+
+def generate_summary_report(fw_client, case_assessment_df):
+    """ Generates a third report summary on reader progress
+    
+    Generates a progress report summary for each reader, indicating how many cases
+    they've been assigned, how many they've completed, and how many they have max.
+    
+    Args:
+        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
+        source_project (flywheel.Project): The source project for all sessions
+        case_assessment_df (pandas.DataFrame): 
+
+    Returns:
+
+    """
+
+    # Initialize a dataframe
+    readers = case_assessment_df["reader_id"].unique()
+    log.info(f"generating report for readers:\n{readers}")
+    progress_report = pd.DataFrame(
+        columns=[
+            "reader_id",
+            "completed_cases",
+            "assigned_cases",
+            "percent_assigned",
+            "max_cases",
+            "percent_max",
+        ]
+    )
+    # We will pull the session ID's from the first report to make sure we're getting
+    # reader info from the right project.
+
+    for reader in readers:
+
+        # First fill in all the new df stuff:
+        log.info(f"looking for reader {reader}")
+        # Get the readers summary
+        current_reader_df = case_assessment_df[
+            case_assessment_df["reader_id"] == reader
+        ]
+
+        sample_id = current_reader_df["id"].iloc[0]
+        sample_ses = fw_client.get_session(sample_id)
+        reader_project = fw_client.get_project(sample_ses.project)
+        max_cases = reader_project.info.get("project_features", {}).get(
+            "max_cases", "NA"
+        )
+        
+        assigned_cases = len(
+            reader_project.info.get("project_features", {}).get("assignments", [])
+        )
+        
+        completed_cases = current_reader_df["completed"].value_counts().get(True,0)
+
+        if max_cases != "NA" and max_cases != 0 and assigned_cases != 0:
+            percent_assigned = round((completed_cases * 100.0) / assigned_cases, 2)
+            percent_max = round((completed_cases * 100.0) / max_cases, 2)
+        else:
+            percent_max = "NA"
+            percent_assigned = "NA"
+
+        reader_df = {
+            "reader_id": reader,
+            "completed_cases": completed_cases,
+            "assigned_cases": assigned_cases,
+            "percent_assigned": percent_assigned,
+            "max_cases": max_cases,
+            "percent_max": percent_max,
+        }
+        
+        progress_report = progress_report.append(reader_df, ignore_index=True, sort=False)
+
+    return progress_report
