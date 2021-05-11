@@ -676,9 +676,9 @@ def generate_summary_report(fw_client, case_assessment_df):
 
     """
 
-    # Initialize a dataframe
+    # Initialize a dataframe that has one row for each reader
     readers = case_assessment_df["reader_id"].unique()
-    log.info(f"generating report for readers:\n{readers}")
+    log.debug(f"generating report for readers:\n{readers}")
     progress_report = pd.DataFrame(
         columns=[
             "reader_id",
@@ -689,41 +689,49 @@ def generate_summary_report(fw_client, case_assessment_df):
             "percent_max",
         ]
     )
-    # We will pull the session ID's from the first report to make sure we're getting
-    # reader info from the right project.
 
+    
     for reader in readers:
 
-        # First fill in all the new df stuff:
-        log.info(f"looking for reader {reader}")
-        # Get the readers summary
+        log.debug(f"looking for reader {reader}")
+        
+        # Extract all cases assigned to this reader
         current_reader_df = case_assessment_df[
             case_assessment_df["reader_id"] == reader
         ]
-
+        
+        # Count the number of cases that have "True" in the "completed" column
         completed_cases = current_reader_df["completed"].value_counts().get(True, 0)
-
+        
+        # Extract the Reader project (This column is new for this purpose and will not 
+        # exist in previous versions).
+        
+        # I include the reader project ID rather than doing some kind of recursive lookup
+        # because I believe this is the most certain way to ensure that we are looking
+        # at the correct reader study.  This also provides a quick way to match reader
+        # names to their studies.  
         sample_id = current_reader_df["reader_project"].iloc[0]
         reader_project = fw_client.get_project(sample_id)
         project_features = reader_project.info.get("project_features", {})
         max_cases = project_features.get("max_cases", "NA")
         log.info(f"max_cases: {max_cases}")
-        # max_cases = reader_project.info.get("project_features", {}).get(
-        #     "max_cases", "NA"
-        # )
         
+        # The length of the assigned cases is the number of true assigned cases.
         assigned_cases = len(
             reader_project.info.get("project_features", {}).get("assignments", [])
         )
         
-
+        # If all these values exist and there will be no division by zero, calculate
+        # The percent of assigned cases that the reader has completed, and also the 
+        # percent of the intended max cases that the reader has completed. 
         if max_cases != "NA" and max_cases != 0 and assigned_cases != 0:
             percent_assigned = round((completed_cases * 100.0) / assigned_cases, 2)
             percent_max = round((completed_cases * 100.0) / max_cases, 2)
         else:
             percent_max = "NA"
             percent_assigned = "NA"
-
+        
+        # Create a dict for this readers values
         reader_df = {
             "reader_id": reader,
             "completed_cases": completed_cases,
@@ -733,6 +741,7 @@ def generate_summary_report(fw_client, case_assessment_df):
             "percent_max_completed": percent_max,
         }
         
+        # Append a row to the progress report
         progress_report = progress_report.append(reader_df, ignore_index=True, sort=False)
 
     return progress_report
