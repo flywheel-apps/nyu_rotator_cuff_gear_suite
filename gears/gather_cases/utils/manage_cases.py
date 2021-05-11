@@ -18,6 +18,7 @@ CASE_ASSESSMENT_REC = {
     "reader_id": None,
     "completed": False,
     "completed_timestamp": None,
+    "reader_project": None
 }
 
 
@@ -505,6 +506,7 @@ def fill_reader_case_data(fw_client, project_features, session):
         case_assignment_status["subject"] = session.subject.label
         case_assignment_status["session"] = session.label
         case_assignment_status["reader_id"] = assignment["reader_id"]
+        case_assignment_status["reader_project"] = assigned_session.project
         ohif_viewer = assigned_session_info.get("ohifViewer")
         user_data = []
         if ohif_viewer:
@@ -699,18 +701,21 @@ def generate_summary_report(fw_client, case_assessment_df):
             case_assessment_df["reader_id"] == reader
         ]
 
-        sample_id = current_reader_df["id"].iloc[0]
-        sample_ses = fw_client.get_session(sample_id)
-        reader_project = fw_client.get_project(sample_ses.project)
-        max_cases = reader_project.info.get("project_features", {}).get(
-            "max_cases", "NA"
-        )
+        completed_cases = current_reader_df["completed"].value_counts().get(True, 0)
+
+        sample_id = current_reader_df["reader_project"].iloc[0]
+        reader_project = fw_client.get_project(sample_id)
+        project_features = reader_project.info.get("project_features", {})
+        max_cases = project_features.get("max_cases", "NA")
+        log.info(f"max_cases: {max_cases}")
+        # max_cases = reader_project.info.get("project_features", {}).get(
+        #     "max_cases", "NA"
+        # )
         
         assigned_cases = len(
             reader_project.info.get("project_features", {}).get("assignments", [])
         )
         
-        completed_cases = current_reader_df["completed"].value_counts().get(True,0)
 
         if max_cases != "NA" and max_cases != 0 and assigned_cases != 0:
             percent_assigned = round((completed_cases * 100.0) / assigned_cases, 2)
@@ -723,9 +728,9 @@ def generate_summary_report(fw_client, case_assessment_df):
             "reader_id": reader,
             "completed_cases": completed_cases,
             "assigned_cases": assigned_cases,
-            "percent_assigned": percent_assigned,
+            "percent_assigned_completed": percent_assigned,
             "max_cases": max_cases,
-            "percent_max": percent_max,
+            "percent_max_completed": percent_max,
         }
         
         progress_report = progress_report.append(reader_df, ignore_index=True, sort=False)
