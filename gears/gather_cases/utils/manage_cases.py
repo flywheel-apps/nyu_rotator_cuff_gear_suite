@@ -416,6 +416,7 @@ def copy_rois_to_source(fw_client, session):
         # We leave the logic of pulling data from "completed" cases to the function
         # `fill_session_attributes()`, which must be run before this.
         namespace = 'measurements'
+        # If the readers assignment has measurements, use them
         if namespace in assignment:
             assignment_measurements = assignment[namespace]
             
@@ -452,35 +453,35 @@ def copy_rois_to_source(fw_client, session):
         if namespace in assignment:
             assignment_reads = assignment[namespace]
 
-            # loop through each read
-            for reader in assignment_reads:
+            # If readers arent already present in the source ohif viewer, just
+            # initialize that ROI type with this data and move on.
+            if namespace not in ohif_viewer:
+                ohif_viewer[namespace] = assignment_reads
+            
 
-                # If it's readers arent already present in the source ohif viewer, just
-                # initialize that ROI type with this data and move on.
-                if reader not in ohif_viewer[namespace]:
-                    ohif_viewer[namespace] = assignment_measurements[meas_type]
+            # Otherwise we need to make sure this measurement ID isn't already
+            # uploaded, and if not append to the 
+            # `ohif_viewer["measurement"]["meas_type"]` list
+            else:
 
-                # Otherwise we need to make sure this measurement ID isn't already
-                # uploaded, and if not append to the 
-                # `ohif_viewer["measurement"]["meas_type"]` list
-                else:
-                    current_reads = assignment_measurements[meas_type]
-
-                    for reader_id in current_reads:
-                        current_read = current_reads[reader_id]
-                        current_read["FromBlindReader"] = True
-                        
-                        # See if the reader id is already in the ohifViewer "reads"
-                        if reader_id not in ohif_viewer[namespace]:
-                            # add a boolean "FromBlindReader" key to help distinguish 
-                            # that these came from the blind reader gear.
+                for reader_id in assignment_reads:
+                    current_read = assignment_reads[reader_id]
+                    # add a boolean "FromBlindReader" key to help distinguish 
+                    # that these came from the blind reader gear.
+                    current_read["FromBlindReader"] = True
+                    
+                    # See if the reader id is already in the ohifViewer "reads"
+                    if reader_id not in ohif_viewer[namespace]:
+                        ohif_viewer[namespace][reader_id] = current_read
+                    
+                    # If they already have a read, see if they're the same
+                    else:
+                        # If they're not throw a warning but idk what to do else now
+                        # TODO: Figure out how to handle this collision
+                        if current_read != ohif_viewer[namespace][reader_id]:
+                            log.warning(f"Reader ID {reader_id} already has a read in session {session.id} that does not match.")
                             
-                            ohif_viewer[namespace][reader_id] = current_read
-                        
-                        # If they already have a read, see if they're the same
-                        else:
-                            if current_read != ohif_viewer[namespace][reader_id]:
-                                log.warning(f"Reader ID {reader_id} already has a read in session {session.id} that does not match.")
+    session.update_info({'ohifViewer': ohif_viewer})
 
     return
 
@@ -794,8 +795,8 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
             case_assessment_df = case_assessment_df.append(
                 case_assignments, ignore_index=True
             )
-
-        copy_rois_to_source(fw_client, session)
+        if copyroi:
+            copy_rois_to_source(fw_client, session)
         
     source_project.update_info({"project_features": project_features})
 
