@@ -8,7 +8,7 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/gather_cases",
     "cite": "",
-    "version": "0.2.0h",
+    "version": "0.2.1a",
     "custom": {
         "docker-image": "flywheel/gather-cases:0.1.9",
         "gear-builder": {
@@ -21,6 +21,14 @@
             "base": "api-key"
         }
     },
-    "config": {},
+    
+    "config": {
+        "Display Reads In Main Project": {
+            "default": false,
+            "description": "Reader ROI's and measurements will be visible in the main project after gather-cases has been run.",
+            "type": "boolean"
+        }
+                
+    },
     "command": "/flywheel/v0/run.py"
 }

@@ -33,6 +33,7 @@ def main(context):
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get_project(analysis.parents["project"])
         reader_group_id = source_project.group
+        copyroi = context.config["Display Reads In Main Project"]
 
         # TODO: Make sure this doesn't mess other things up
         # If gear is run within the Readers group, error and exit
@@ -49,7 +50,7 @@ def main(context):
             )
 
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
-            fw_client, source_project
+            fw_client, source_project, copyroi
         )
 
         progress_report = generate_summary_report(fw_client, case_assessment_df)

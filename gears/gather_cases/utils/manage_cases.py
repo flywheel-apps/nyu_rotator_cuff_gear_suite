@@ -21,6 +21,12 @@ CASE_ASSESSMENT_REC = {
     "reader_project": None
 }
 
+OHIF_VIEWER_REC = {
+    "measurements": {},
+    "read": {}
+}
+
+
 
 class InvalidGroupError(Exception):
     """Exception raised for using an Invalid Flywheel group for this gear.
@@ -361,9 +367,131 @@ def assess_completed_status(ohif_viewer, user_data):
     return completed_status, error_msg
 
 
+def copy_rois_to_source(fw_client, session):
+    """
+    Copy reader OHIF reads into the source session's "OhifViewer" namespace so that the
+    reads render and are visible.  `fill_session_attributes()` must be run  before this,
+    as this function performs no logic on if cases are completed or not.  It does NOT
+    pull metadata directly from the readers session.  It moves metadata already coppied
+    into the source session from `fill_session_attributes()`.
+
+
+    Args:
+        fw_client (flywheel.Client): The active flywheel client
+        session (flywheel.Session): The flywheel session object being queried for
+            completion status
+
+    Returns:
+        dict: Session attributes to populate an output dataframe
+    """
+
+    # Each session has a set of features: case_coverage and assignments
+    # each assignment consists of {project_id:<uid>, session_id:<uid>,
+    # reader_id:<email>,status:<>,  *measurement:{}*, *read: {}*}
+    # **if performed, "gathered"
+    # if not found, create with defaults
+
+    # Grab session features from each session, if present.
+    # If not yet present, simply skip this session
+    session_features = session.info.get("session_features")
+    
+    if not session_features:
+        log.debug(f"No assignments for session {session.label}")
+        return
+    
+    # Get the ohifViewer object or initialize from OHIF_VIEWER_REC if not present.
+    if "ohifViewer" not in session.info:
+        ohif_viewer = OHIF_VIEWER_REC.copy()
+    else:
+        ohif_viewer = session.info.get("ohifViewer")
+        
+    
+    # TODO: could this simply be `if dictA==dictB`?
+    # Get the id/timestamp of every read/measurement.  I'm assuming these are unique.
+    # LIST COMPREHENSION!  THIS ONE'S FOR YOU JOSH!  MAKIN YOU PROUD!
+    # Note, reads will be handled differently
+    measurement_ids = [meas.get("_id") for mtype in ohif_viewer["measurements"] for meas in ohif_viewer["measurements"][mtype] ]
+    
+    for assignment in session_features["assignments"]:
+        # We leave the logic of pulling data from "completed" cases to the function
+        # `fill_session_attributes()`, which must be run before this.
+        namespace = 'measurements'
+        if namespace in assignment:
+            assignment_measurements = assignment[namespace]
+            
+            # loop through each measurement type (ROI, length, etc)
+            for meas_type in assignment_measurements:
+                
+                # If it's not already present in the source ohif viewer, just initialize
+                # that ROI type with this data and move on.
+                if meas_type not in ohif_viewer[namespace]:
+                    ohif_viewer[meas_type] = assignment_measurements[meas_type]
+                
+                # Otherwise we need to make sure this measurement ID isn't already
+                # uploaded, and if not append to the 
+                # `ohif_viewer["measurement"]["meas_type"]` list
+                else:
+                    current_measurements = assignment_measurements[meas_type]
+                    
+                    for current_meas in current_measurements:
+                        current_meas_id = current_meas.get("_id")
+                    
+                        if current_meas_id not in measurement_ids:
+                            # add a boolean "FromBlindReader" key to help distinguish 
+                            # that these came from the blind reader gear.
+                            current_meas["FromBlindReader"] = True
+                            ohif_viewer[namespace][meas_type].append(current_meas)
+                            measurement_ids.append(current_meas_id)
+                            
+                        else:
+                            log.debug(f"{namespace} {current_meas_id} to reader {assignment.get('reader_id')} already imported")
+                        
+        
+        # Now rinse and repeat for reads:
+        namespace = 'read'
+        if namespace in assignment:
+            assignment_reads = assignment[namespace]
+
+            # loop through each read
+            for reader in assignment_reads:
+
+                # If it's readers arent already present in the source ohif viewer, just
+                # initialize that ROI type with this data and move on.
+                if reader not in ohif_viewer[namespace]:
+                    ohif_viewer[namespace] = assignment_measurements[meas_type]
+
+                # Otherwise we need to make sure this measurement ID isn't already
+                # uploaded, and if not append to the 
+                # `ohif_viewer["measurement"]["meas_type"]` list
+                else:
+                    current_reads = assignment_measurements[meas_type]
+
+                    for reader_id in current_reads:
+                        current_read = current_reads[reader_id]
+                        current_read["FromBlindReader"] = True
+                        
+                        # See if the reader id is already in the ohifViewer "reads"
+                        if reader_id not in ohif_viewer[namespace]:
+                            # add a boolean "FromBlindReader" key to help distinguish 
+                            # that these came from the blind reader gear.
+                            
+                            ohif_viewer[namespace][reader_id] = current_read
+                        
+                        # If they already have a read, see if they're the same
+                        else:
+                            if current_read != ohif_viewer[namespace][reader_id]:
+                                log.warning(f"Reader ID {reader_id} already has a read in session {session.id} that does not match.")
+
+    return
+
+
 def fill_session_attributes(fw_client, project_features, session):
     """
     Acquire data from a case to populate the output summary
+    
+    Sorry Josh, that docstring is shit.  This function updates the metadata on the
+    source session to include any completed reads/measurements from the assigned cases.
+    These are added to the "session_features" meatadata namespace in the source session.
 
     Args:
         fw_client (flywheel.Client): The active flywheel client
@@ -375,9 +503,11 @@ def fill_session_attributes(fw_client, project_features, session):
     Returns:
         dict: Session attributes to populate an output dataframe
     """
+
     # Each session has a set of features: case_coverage and assignments
-    # each assignment consists of {project_id:<uid>, session_id:<uid>, status:<>,
-    #    *measurement:{}*, *read: {}*} **if performed, "gathered"
+    # each assignment consists of {project_id:<uid>, session_id:<uid>,
+    # reader_id:<email>,status:<>,  *measurement:{}*, *read: {}*}
+    # **if performed, "gathered"
     # if not found, create with defaults
 
     # Grab session features from each session, if present.
@@ -516,13 +646,18 @@ def fill_reader_case_data(fw_client, project_features, session):
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
+                    
                 user_data = ohif_viewer["read"][reader_id]["notes"]
+                
+                # TODO: Potentially problematic for copying to main viewer
                 user_data["completed_timestamp"] = ohif_viewer["read"][reader_id][
                     "date"
                 ]
+                
                 completed_status, error_msg = assess_completed_status(
                     ohif_viewer, user_data
                 )
+                
                 case_assignment_status.update(user_data)
 
                 # Eliminate carriage return and present error message
@@ -590,7 +725,7 @@ def fill_reader_case_data(fw_client, project_features, session):
     return case_assignments
 
 
-def gather_case_data_from_readers(fw_client, source_project):
+def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
     """
     Gather case assessments from the distributed session assignments
 
@@ -599,10 +734,14 @@ def gather_case_data_from_readers(fw_client, source_project):
     2) if assigned, check for completion status (classified, measured)
     3) record completion status in metadata and spreadsheet.
     4) Generates a summary status sheet.
+    
+    Obviously somewhere in here it also copies metadata/
 
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
+        copyroi (bool): True to render reader ROI's so that they are visible in the
+        source project, False to only copy them as metadata (not visible in OHIF viewer)
 
     Returns:
         tuple: a pair of pandas.DataFrame reporting on the state of each session in
@@ -656,6 +795,8 @@ def gather_case_data_from_readers(fw_client, source_project):
                 case_assignments, ignore_index=True
             )
 
+        copy_rois_to_source(fw_client, session)
+        
     source_project.update_info({"project_features": project_features})
 
     return source_sessions_df, case_assessment_df
