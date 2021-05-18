@@ -19,8 +19,9 @@ from utils.manage_cases import (
     generate_summary_report,
 )
 
-log = logging.getLogger(__name__)
 
+log = logging.getLogger(__name__)
+log.setLevel("DEBUG")
 
 def main(context):
     try:

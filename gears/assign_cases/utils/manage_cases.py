@@ -359,18 +359,27 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
                 if role.label in ["read-write", "read-only"]
             ]
 
-            reader_id = ''
-            
-            for perm in project.permissions:
-                if set(perm.role_ids).intersection(proj_roles):
-                    reader_id = perm.id
+
                     
+            # Below is the "original" code, which was modified to the code immediately below it.
+            # List comprehension is faster, but I have expanded it for better logging, AND also
+            # there was a problem with the new flywheel permissions that caused an error with 
+            # the old code.  I am leaving it in for now in case any weird problems arise in the
+            # future, so we can reference the "original" code quickly in case I missed something
+            # 2021-05-18
+                    
+
             # reader_id = [
             #     perm.id
             #     for perm in project.permissions
             #     if set(perm.role_ids).intersection(proj_roles)
             # ][0]
-            #
+
+            reader_id = ''
+
+            for perm in project.permissions:
+                if set(perm.role_ids).intersection(proj_roles):
+                    reader_id = perm.id
             
             try:
                 # export the session to the reader project

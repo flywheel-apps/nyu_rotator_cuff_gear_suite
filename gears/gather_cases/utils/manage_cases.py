@@ -18,14 +18,10 @@ CASE_ASSESSMENT_REC = {
     "reader_id": None,
     "completed": False,
     "completed_timestamp": None,
-    "reader_project": None
+    "reader_project": None,
 }
 
-OHIF_VIEWER_REC = {
-    "measurements": {},
-    "read": {}
-}
-
+OHIF_VIEWER_REC = {"measurements": {}, "read": {}}
 
 
 class InvalidGroupError(Exception):
@@ -394,94 +390,110 @@ def copy_rois_to_source(fw_client, session):
     # Grab session features from each session, if present.
     # If not yet present, simply skip this session
     session_features = session.info.get("session_features")
-    
+
     if not session_features:
         log.debug(f"No assignments for session {session.label}")
         return
-    
+
     # Get the ohifViewer object or initialize from OHIF_VIEWER_REC if not present.
     if "ohifViewer" not in session.info:
         ohif_viewer = OHIF_VIEWER_REC.copy()
     else:
         ohif_viewer = session.info.get("ohifViewer")
-        
-    
+
     # TODO: could this simply be `if dictA==dictB`?
     # Get the id/timestamp of every read/measurement.  I'm assuming these are unique.
     # LIST COMPREHENSION!  THIS ONE'S FOR YOU JOSH!  MAKIN YOU PROUD!
     # Note, reads will be handled differently
-    measurement_ids = [meas.get("_id") for mtype in ohif_viewer["measurements"] for meas in ohif_viewer["measurements"][mtype] ]
-    
+    measurement_ids = [
+        meas.get("_id")
+        for mtype in ohif_viewer.get("measurements", "")
+        for meas in ohif_viewer.get("measurements", {}).get(mtype)
+        if meas
+    ]
+
     for assignment in session_features["assignments"]:
         # We leave the logic of pulling data from "completed" cases to the function
         # `fill_session_attributes()`, which must be run before this.
-        namespace = 'measurements'
+        namespace = "measurements"
         # If the readers assignment has measurements, use them
         if namespace in assignment:
             assignment_measurements = assignment[namespace]
-            
+
             # loop through each measurement type (ROI, length, etc)
             for meas_type in assignment_measurements:
-                
+
                 # If it's not already present in the source ohif viewer, just initialize
                 # that ROI type with this data and move on.
                 if meas_type not in ohif_viewer[namespace]:
-                    ohif_viewer[meas_type] = assignment_measurements[meas_type]
-                
+                    ohif_viewer[namespace][meas_type] = assignment_measurements[
+                        meas_type
+                    ]
+
                 # Otherwise we need to make sure this measurement ID isn't already
-                # uploaded, and if not append to the 
+                # uploaded, and if not append to the
                 # `ohif_viewer["measurement"]["meas_type"]` list
                 else:
                     current_measurements = assignment_measurements[meas_type]
-                    
+
                     for current_meas in current_measurements:
                         current_meas_id = current_meas.get("_id")
-                    
+
                         if current_meas_id not in measurement_ids:
-                            # add a boolean "FromBlindReader" key to help distinguish 
+                            # add a boolean "FromBlindReader" key to help distinguish
                             # that these came from the blind reader gear.
                             current_meas["FromBlindReader"] = True
                             ohif_viewer[namespace][meas_type].append(current_meas)
                             measurement_ids.append(current_meas_id)
-                            
+
                         else:
-                            log.debug(f"{namespace} {current_meas_id} to reader {assignment.get('reader_id')} already imported")
-                        
-        
+                            log.debug(
+                                f"{namespace} {current_meas_id} to reader {assignment.get('reader_id')} already imported"
+                            )
+
+        log.debug("checking for reads")
         # Now rinse and repeat for reads:
-        namespace = 'read'
+        namespace = "read"
         if namespace in assignment:
             assignment_reads = assignment[namespace]
+            log.debug(f"assignment reads: {assignment_reads}")
 
             # If readers arent already present in the source ohif viewer, just
             # initialize that ROI type with this data and move on.
             if namespace not in ohif_viewer:
                 ohif_viewer[namespace] = assignment_reads
-            
+                log.debug("namespace not present, copying.")
 
             # Otherwise we need to make sure this measurement ID isn't already
-            # uploaded, and if not append to the 
+            # uploaded, and if not append to the
             # `ohif_viewer["measurement"]["meas_type"]` list
             else:
 
+                log.debug("Namespace found, augmenting")
                 for reader_id in assignment_reads:
+                    log.debug(f"reader ID {reader_id} ")
                     current_read = assignment_reads[reader_id]
-                    # add a boolean "FromBlindReader" key to help distinguish 
+                    log.debug(f"current_read: {current_read}")
+                    # add a boolean "FromBlindReader" key to help distinguish
                     # that these came from the blind reader gear.
                     current_read["FromBlindReader"] = True
-                    
+
                     # See if the reader id is already in the ohifViewer "reads"
                     if reader_id not in ohif_viewer[namespace]:
+                        log.debug(f"reader id not found in {ohif_viewer[namespace]}")
                         ohif_viewer[namespace][reader_id] = current_read
-                    
+
                     # If they already have a read, see if they're the same
                     else:
+                        log.debug(f"reader id found in {ohif_viewer[namespace]}")
                         # If they're not throw a warning but idk what to do else now
                         # TODO: Figure out how to handle this collision
                         if current_read != ohif_viewer[namespace][reader_id]:
-                            log.warning(f"Reader ID {reader_id} already has a read in session {session.id} that does not match.")
-                            
-    session.update_info({'ohifViewer': ohif_viewer})
+                            log.warning(
+                                f"Reader ID {reader_id} already has a read in session {session.id} that does not match."
+                            )
+
+    session.update_info({"ohifViewer": ohif_viewer})
 
     return
 
@@ -647,18 +659,18 @@ def fill_reader_case_data(fw_client, project_features, session):
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
-                    
+
                 user_data = ohif_viewer["read"][reader_id]["notes"]
-                
+
                 # TODO: Potentially problematic for copying to main viewer
                 user_data["completed_timestamp"] = ohif_viewer["read"][reader_id][
                     "date"
                 ]
-                
+
                 completed_status, error_msg = assess_completed_status(
                     ohif_viewer, user_data
                 )
-                
+
                 case_assignment_status.update(user_data)
 
                 # Eliminate carriage return and present error message
@@ -791,13 +803,15 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
         )
 
         case_assignments = fill_reader_case_data(fw_client, project_features, session)
+        
         if case_assignments:
             case_assessment_df = case_assessment_df.append(
                 case_assignments, ignore_index=True
             )
+            
         if copyroi:
             copy_rois_to_source(fw_client, session)
-        
+
     source_project.update_info({"project_features": project_features})
 
     return source_sessions_df, case_assessment_df
@@ -832,47 +846,46 @@ def generate_summary_report(fw_client, case_assessment_df):
         ]
     )
 
-    
     for reader in readers:
 
         log.debug(f"looking for reader {reader}")
-        
+
         # Extract all cases assigned to this reader
         current_reader_df = case_assessment_df[
             case_assessment_df["reader_id"] == reader
         ]
-        
+
         # Count the number of cases that have "True" in the "completed" column
         completed_cases = current_reader_df["completed"].value_counts().get(True, 0)
-        
-        # Extract the Reader project (This column is new for this purpose and will not 
+
+        # Extract the Reader project (This column is new for this purpose and will not
         # exist in previous versions).
-        
+
         # I include the reader project ID rather than doing some kind of recursive lookup
         # because I believe this is the most certain way to ensure that we are looking
         # at the correct reader study.  This also provides a quick way to match reader
-        # names to their studies.  
+        # names to their studies.
         sample_id = current_reader_df["reader_project"].iloc[0]
         reader_project = fw_client.get_project(sample_id)
         project_features = reader_project.info.get("project_features", {})
         max_cases = project_features.get("max_cases", "NA")
         log.info(f"max_cases: {max_cases}")
-        
+
         # The length of the assigned cases is the number of true assigned cases.
         assigned_cases = len(
             reader_project.info.get("project_features", {}).get("assignments", [])
         )
-        
+
         # If all these values exist and there will be no division by zero, calculate
-        # The percent of assigned cases that the reader has completed, and also the 
-        # percent of the intended max cases that the reader has completed. 
+        # The percent of assigned cases that the reader has completed, and also the
+        # percent of the intended max cases that the reader has completed.
         if max_cases != "NA" and max_cases != 0 and assigned_cases != 0:
             percent_assigned = round((completed_cases * 100.0) / assigned_cases, 2)
             percent_max = round((completed_cases * 100.0) / max_cases, 2)
         else:
             percent_max = "NA"
             percent_assigned = "NA"
-        
+
         # Create a dict for this readers values
         reader_df = {
             "reader_id": reader,
@@ -882,8 +895,10 @@ def generate_summary_report(fw_client, case_assessment_df):
             "max_cases": max_cases,
             "percent_max_completed": percent_max,
         }
-        
+
         # Append a row to the progress report
-        progress_report = progress_report.append(reader_df, ignore_index=True, sort=False)
+        progress_report = progress_report.append(
+            reader_df, ignore_index=True, sort=False
+        )
 
     return progress_report

@@ -206,6 +206,14 @@ def check_valid_reader(fw_client, reader_id, group_id):
         if role.label in ["read-write", "read-only"]
     ]
 
+    # Below is the "original" code, which was modified to the code immediately below it.
+    # List comprehension is faster, but I have expanded it for better logging, AND also
+    # there was a problem with the new flywheel permissions that caused an error with 
+    # the old code.  I am leaving it in for now in case any weird problems arise in the
+    # future, so we can reference the "original" code quickly in case I missed something
+    # 2021-05-18
+
+
     # valid_reader_ids = [
     #     [
     #         perm.id
@@ -283,18 +291,27 @@ def initialize_dataframes(fw_client, reader_group):
             if role.label in ["read-write", "read-only"]
         ]
 
-        reader_id = []
 
-        for perm in reader_proj.permissions:
-            if set(perm.role_ids).intersection(proj_roles):
-                reader_id.append(perm.id)
         
+        # Below is the "original" code, which was modified to the code immediately below it.
+        # List comprehension is faster, but I have expanded it for better logging, AND also
+        # there was a problem with the new flywheel permissions that caused an error with 
+        # the old code.  I am leaving it in for now in case any weird problems arise in the
+        # future, so we can reference the "original" code quickly in case I missed something
+        # 2021-05-18
+
         # reader_id = [
         #     perm.id
         #     for perm in reader_proj.permissions
         #     if set(perm.role_ids).intersection(proj_roles)
         # ][0]
         
+        reader_id = []
+
+        for perm in reader_proj.permissions:
+            if set(perm.role_ids).intersection(proj_roles):
+                reader_id.append(perm.id)
+                
         
         # Fill the dataframe with project data.
         dest_projects_df.loc[dest_projects_df.shape[0] + 1] = [
@@ -506,9 +523,13 @@ def distribute_batch_to_readers(
         else:
             session_features = {}
 
+
+
         # Locate Reader Project
         if reader_email in dest_projects_df.reader_id.values:
-            indx = dest_projects_df[dest_projects_df.reader_id == reader_email].index[0]
+            project_id = dest_projects_df.loc[
+                dest_projects_df['reader_id'] == reader_email, 'project_id'][0]
+            #indx = dest_projects_df[dest_projects_df.reader_id == reader_email].index[0]
             project_id = dest_projects_df.id[indx]
             reader_proj = fw_client.get(project_id).reload()
         # This will be caught as a non-valid reader,

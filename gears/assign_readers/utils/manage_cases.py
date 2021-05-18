@@ -216,16 +216,14 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         if role.label in ["read-write", "read-only"]
     ]
 
-    group_reader_ids = []
-    for proj in group_projects:
-        log.debug(f"searching for permissions in {proj.label}")
-        for perm in proj.permissions:
-            log.debug(f"Found permission: {perm}")
-            role_match = set(perm.role_ids).intersection(proj_roles)
-            log.debug(f"roles match {role_match}")
-            if role_match:
-                group_reader_ids.extend(perm.id)
+
                 
+    # Below is the "original" code, which was modified to the code immediately below it.
+    # List comprehension is faster, but I have expanded it for better logging, AND also
+    # there was a problem with the new flywheel permissions that caused an error with 
+    # the old code.  I am leaving it in for now in case any weird problems arise in the
+    # future, so we can reference the "original" code quickly in case I missed something
+    # 2021-05-18
                 
     # group_reader_ids = [
     #     [
@@ -235,6 +233,16 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
     #     ][0]
     #     for proj in group_projects
     # ]
+    
+    group_reader_ids = []
+    for proj in group_projects:
+        log.debug(f"searching for permissions in {proj.label}")
+        for perm in proj.permissions:
+            log.debug(f"Found permission: {perm}")
+            role_match = set(perm.role_ids).intersection(proj_roles)
+            log.debug(f"roles match {role_match}")
+            if role_match:
+                group_reader_ids.extend(perm.id)
 
     for index in readers_df.index:
         reader_id = readers_df.email[index]
@@ -311,6 +319,22 @@ def instantiate_new_readers(fw_client, group, readers_df):
     ]
 
 
+    # Below is the "original" code, which was modified to the code immediately below it.
+    # List comprehension is faster, but I have expanded it for better logging, AND also
+    # there was a problem with the new flywheel permissions that caused an error with 
+    # the old code.  I am leaving it in for now in case any weird problems arise in the
+    # future, so we can reference the "original" code quickly in case I missed something
+    # 2021-05-18
+
+    # project_readers = [
+    #     [
+    #         perm.id
+    #         for perm in proj.permissions
+    #         if set(perm.role_ids).intersection(proj_roles)
+    #     ][0]
+    #     for proj in group.projects()
+    # ]
+    
     project_readers = []
     for proj in group.projects():
         log.debug(f"searching for permissions in {proj.label}")
@@ -321,16 +345,7 @@ def instantiate_new_readers(fw_client, group, readers_df):
             log.debug(f"roles match {role_match}")
             if role_match:
                 project_readers.extend(perm.id)
-
-
-    # project_readers = [
-    #     [
-    #         perm.id
-    #         for perm in proj.permissions
-    #         if set(perm.role_ids).intersection(proj_roles)
-    #     ][0]
-    #     for proj in group.projects()
-    # ]
+                
     
     for indx in readers_df[~readers_df.email.isin(project_readers)].index:
         readers_to_instantiate.append(

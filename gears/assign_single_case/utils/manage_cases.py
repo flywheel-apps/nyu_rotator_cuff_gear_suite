@@ -202,7 +202,14 @@ def check_valid_reader(fw_client, reader_id, group_id):
         for role in fw_client.get_all_roles()
         if role.label in ["read-write", "read-only"]
     ]
-
+    
+    # Below is the "original" code, which was modified to the code immediately below it.
+    # List comprehension is faster, but I have expanded it for better logging, AND also
+    # there was a problem with the new flywheel permissions that caused an error with 
+    # the old code.  I am leaving it in for now in case any weird problems arise in the
+    # future, so we can reference the "original" code quickly in case I missed something
+    # 2021-05-18
+    
     # valid_reader_ids = [
     #     [
     #         perm.id
