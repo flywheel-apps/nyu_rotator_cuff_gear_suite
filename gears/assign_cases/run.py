@@ -33,7 +33,7 @@ def main(context):
         reader_group_id = source_project.group
 
 
-        # TODO: Verify that this isn't fucking something up.
+        # TODO: Verify that this isn't RUSTLING ANYTONES JIMMIES.
         # # If gear is run within the Readers group, error and exit
         # if analysis.parents["group"] == reader_group_id:
         #     raise InvalidGroupError(
