@@ -10,10 +10,10 @@
     "cite": "",
     "version": "0.2.1",
     "custom": {
-        "docker-image": "flywheel/assign-batch-cases:0.0.1-dev-c",
+        "docker-image": "flywheel/assign-batch-cases:0.2.1",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-batch-cases:0.0.1-dev-c"
+            "image": "flywheel/assign-batch-cases:0.2.1"
         }
     },
     "inputs": {

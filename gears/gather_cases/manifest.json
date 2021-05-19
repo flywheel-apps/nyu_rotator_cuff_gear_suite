@@ -10,10 +10,10 @@
     "cite": "",
     "version": "0.2.1",
     "custom": {
-        "docker-image": "flywheel/gather-cases:0.1.9",
+        "docker-image": "flywheel/gather-cases:0.2.1",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/gather-cases:0.1.9"
+            "image": "flywheel/gather-cases:0.2.1"
         }
     },
     "inputs": {
