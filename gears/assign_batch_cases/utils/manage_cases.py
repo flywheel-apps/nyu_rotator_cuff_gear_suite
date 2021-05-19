@@ -535,6 +535,7 @@ def distribute_batch_to_readers(
             # indx = dest_projects_df[dest_projects_df.reader_id == reader_email].index[0]
             # project_id = dest_projects_df.id[indx]
             # reader_proj = fw_client.get(project_id).reload()
+            # force push
             
         # This will be caught as a non-valid reader,
         # padding these variables to pass then to validation function.
