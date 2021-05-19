@@ -1,0 +1,10 @@
+{
+    "config": {},
+    "inputs": {
+        "reader_csv": {
+            "type": "project",
+            "id": "5f174c122384cf000c737b8c",
+            "name": "users-short.csv"
+        }
+    }
+}

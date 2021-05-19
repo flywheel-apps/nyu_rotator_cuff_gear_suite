@@ -1,0 +1,11 @@
+{
+    "config": {
+        "reader_email": "georgejetson@gmail.com",
+        "assignment_reason": "Assign to Resolve Tie"
+    },
+    "inputs": {},
+    "destination": {
+        "type": "analysis",
+        "id": "5f174c1b2384cf000c737ba1"
+    }
+}

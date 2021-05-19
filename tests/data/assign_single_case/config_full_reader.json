@@ -1,0 +1,11 @@
+{
+    "config": {
+        "reader_email": "gsfr@flywheel.io",
+        "assignment_reason": "Individual Assignment"
+    },
+    "inputs": {},
+    "destination": {
+        "type": "analysis",
+        "id": "5f174c262384cf000c737bc4"
+    }
+}

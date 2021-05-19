@@ -1,0 +1,15 @@
+{
+    "config": {
+        "reader_email": "nancyraihn@flywheel.io",
+        "reader_firstname": "Nancy",
+        "reader_lastname": "Raihn",
+        "max_cases": 5
+    },
+    "inputs": {
+        "reader_csv": {
+            "type": "project",
+            "id": "5f174c122384cf000c737b8c",
+            "name": "users-short.csv"
+        }
+    }
+}

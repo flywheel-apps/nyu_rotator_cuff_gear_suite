@@ -1,0 +1,15 @@
+{
+    "config": {
+        "reader_email": "georgeJetson@gmail.com",
+        "reader_lastname": "Jetson",
+        "reader_firstname": "",
+        "max_cases": 5
+    },
+    "inputs": {
+        "reader_csv": {
+            "type": "project",
+            "id": "5f174c122384cf000c737b8c",
+            "name": "users-short.csv"
+        }
+    }
+}

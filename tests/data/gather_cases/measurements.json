@@ -1,0 +1,634 @@
+{
+    "no_tear": {
+        "ohifViewer": {
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:55:12.425Z",
+                    "notes": {
+                        "supraspinatusTear": "none",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "none",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "none",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "low_partial_tear": {
+        "ohifViewer": {
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:55:58.149Z",
+                    "notes": {
+                        "supraspinatusTear": "lowPartial",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "lowPartial",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "lowPartial",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "high_partial_tear": {
+        "ohifViewer": {
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:56:50.341Z",
+                    "notes": {
+                        "supraspinatusTear": "highPartial",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "highPartial",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "highPartial",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "full_tear": {
+        "ohifViewer": {
+            "measurements": {
+                "Length": [
+                    {
+                        "visible": true,
+                        "active": true,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 38.90526315789472,
+                                "y": 103.0736842105263,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 79.83157894736839,
+                                "y": 153.59999999999997,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 79.83157894736839,
+                                "y": 153.59999999999997,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 335.99999999999994,
+                                    "top": 291.49999999999994
+                                }
+                            }
+                        },
+                        "patientId": "5899647375",
+                        "studyInstanceUid": "9999.47430478166744907642841148155104865385",
+                        "seriesInstanceUid": "9999.160322848252303452413543972679687124011",
+                        "sopInstanceUid": "9999.18545159224249779293107527200642410353",
+                        "frameIndex": 0,
+                        "imagePath": "9999.47430478166744907642841148155104865385$$$9999.160322848252303452413543972679687124011$$$9999.18545159224249779293107527200642410353$$$0",
+                        "lesionNamingNumber": 1,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "cd7d5ee8-60d5-8228-3bcb-e8d2c5ecc93d",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 1,
+                        "length": 23.705970182948555,
+                        "unit": "mm",
+                        "viewport": {
+                            "scale": 1.9791666666666667,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1067,
+                                "windowCenter": 533.5
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 384,
+                                    "y": 384
+                                },
+                                "rowPixelSpacing": 0.36458334326744,
+                                "columnPixelSpacing": 0.36458334326744,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - anteroposterior",
+                        "description": ""
+                    },
+                    {
+                        "visible": true,
+                        "active": false,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 90.44210526315787,
+                                "y": 181.3894736842105,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 53.55789473684207,
+                                "y": 210.1894736842105,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 90.44210526315787,
+                                "y": 181.3894736842105,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 357,
+                                    "top": 346.49999999999994
+                                }
+                            }
+                        },
+                        "patientId": "5899647375",
+                        "studyInstanceUid": "9999.47430478166744907642841148155104865385",
+                        "seriesInstanceUid": "9999.160322848252303452413543972679687124011",
+                        "sopInstanceUid": "9999.18545159224249779293107527200642410353",
+                        "frameIndex": 0,
+                        "imagePath": "9999.47430478166744907642841148155104865385$$$9999.160322848252303452413543972679687124011$$$9999.18545159224249779293107527200642410353$$$0",
+                        "lesionNamingNumber": 2,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "ca3dda09-df19-0806-3b1e-e1c892b2bd8a",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 2,
+                        "length": 17.061117586905535,
+                        "viewport": {
+                            "scale": 1.9791666666666667,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1067,
+                                "windowCenter": 533.5
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 384,
+                                    "y": 384
+                                },
+                                "rowPixelSpacing": 0.36458334326744,
+                                "columnPixelSpacing": 0.36458334326744,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "unit": "mm",
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - mediolateral",
+                        "description": ""
+                    }
+                ]
+            },
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:57:39.503Z",
+                    "notes": {
+                        "supraspinatusTear": "full",
+                        "supraspinatusRetraction": "minimal",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "none",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "none",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "full_contig": {
+        "ohifViewer": {
+            "measurements": {
+                "Length": [
+                    {
+                        "visible": true,
+                        "active": false,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 126.73684210526314,
+                                "y": 117.47368421052632,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 158.73684210526312,
+                                "y": 159.1578947368421,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 158.73684210526312,
+                                "y": 159.1578947368421,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 554.9999999999999,
+                                    "top": 365.5
+                                }
+                            }
+                        },
+                        "patientId": "1546644307",
+                        "studyInstanceUid": "9999.168128737848626613174251705705310424434",
+                        "seriesInstanceUid": "9999.245766613056181567746217311303193478345",
+                        "sopInstanceUid": "9999.53543600905179687402400276235586072907",
+                        "frameIndex": 0,
+                        "imagePath": "9999.168128737848626613174251705705310424434$$$9999.245766613056181567746217311303193478345$$$9999.53543600905179687402400276235586072907$$$0",
+                        "lesionNamingNumber": 1,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "d96e66ad-e572-2cc4-9fd3-0bac32a1e5e8",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 1,
+                        "length": 22.990920163671117,
+                        "viewport": {
+                            "scale": 2.375,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1194,
+                                "windowCenter": 597
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 320,
+                                    "y": 320
+                                },
+                                "rowPixelSpacing": 0.4375,
+                                "columnPixelSpacing": 0.4375,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "unit": "mm",
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - mediolateral",
+                        "description": ""
+                    },
+                    {
+                        "visible": true,
+                        "active": true,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 177.68421052631578,
+                                "y": 126.73684210526315,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 122.52631578947366,
+                                "y": 155.36842105263156,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 177.68421052631578,
+                                "y": 126.73684210526315,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 600,
+                                    "top": 288.5
+                                }
+                            }
+                        },
+                        "patientId": "1546644307",
+                        "studyInstanceUid": "9999.168128737848626613174251705705310424434",
+                        "seriesInstanceUid": "9999.245766613056181567746217311303193478345",
+                        "sopInstanceUid": "9999.53543600905179687402400276235586072907",
+                        "frameIndex": 0,
+                        "imagePath": "9999.168128737848626613174251705705310424434$$$9999.245766613056181567746217311303193478345$$$9999.53543600905179687402400276235586072907$$$0",
+                        "lesionNamingNumber": 2,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "343a1d4c-2e17-6e5c-c89e-d8b09722d598",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 2,
+                        "length": 27.188999425331797,
+                        "viewport": {
+                            "scale": 2.375,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1194,
+                                "windowCenter": 597
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 320,
+                                    "y": 320
+                                },
+                                "rowPixelSpacing": 0.4375,
+                                "columnPixelSpacing": 0.4375,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "unit": "mm",
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - anteroposterior",
+                        "description": ""
+                    }
+                ]
+            },
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:58:38.139Z",
+                    "notes": {
+                        "supraspinatusTear": "full",
+                        "supraspinatusRetraction": "humeral",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "fullContiguous",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "none",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    },
+    "full_tear_imagePath_error": {
+        "ohifViewer": {
+            "measurements": {
+                "Length": [
+                    {
+                        "visible": true,
+                        "active": false,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 126.73684210526314,
+                                "y": 117.47368421052632,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 158.73684210526312,
+                                "y": 159.1578947368421,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 158.73684210526312,
+                                "y": 159.1578947368421,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 554.9999999999999,
+                                    "top": 365.5
+                                }
+                            }
+                        },
+                        "patientId": "1546644307",
+                        "studyInstanceUid": "9999.168128737848626613174251705705310424434",
+                        "seriesInstanceUid": "9999.245766613056181567746217311303193478345",
+                        "sopInstanceUid": "9999.53543600905179687402400276235586072907",
+                        "frameIndex": 0,
+                        "lesionNamingNumber": 1,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "d96e66ad-e572-2cc4-9fd3-0bac32a1e5e8",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 1,
+                        "length": 22.990920163671117,
+                        "viewport": {
+                            "scale": 2.375,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1194,
+                                "windowCenter": 597
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 320,
+                                    "y": 320
+                                },
+                                "rowPixelSpacing": 0.4375,
+                                "columnPixelSpacing": 0.4375,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "unit": "mm",
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - mediolateral",
+                        "description": ""
+                    },
+                    {
+                        "visible": true,
+                        "active": true,
+                        "invalidated": false,
+                        "handles": {
+                            "start": {
+                                "x": 177.68421052631578,
+                                "y": 126.73684210526315,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "end": {
+                                "x": 122.52631578947366,
+                                "y": 155.36842105263156,
+                                "highlight": true,
+                                "active": false
+                            },
+                            "textBox": {
+                                "active": false,
+                                "hasMoved": false,
+                                "movesIndependently": false,
+                                "drawnIndependently": true,
+                                "allowedOutsideImage": true,
+                                "hasBoundingBox": true,
+                                "x": 177.68421052631578,
+                                "y": 126.73684210526315,
+                                "boundingBox": {
+                                    "width": 82.15625,
+                                    "height": 25,
+                                    "left": 600,
+                                    "top": 288.5
+                                }
+                            }
+                        },
+                        "patientId": "1546644307",
+                        "studyInstanceUid": "9999.168128737848626613174251705705310424434",
+                        "seriesInstanceUid": "9999.245766613056181567746217311303193478345",
+                        "sopInstanceUid": "9999.53543600905179687402400276235586072907",
+                        "frameIndex": 0,
+                        "imagePath": "9999.168128737848626613174251705705310424434$$$9999.245766613056181567746217311303193478345$$$9999.53543600905179687402400276235586072907$$$0",
+                        "lesionNamingNumber": 2,
+                        "userId": null,
+                        "toolType": "Length",
+                        "_id": "343a1d4c-2e17-6e5c-c89e-d8b09722d598",
+                        "timepointId": "TimepointId",
+                        "measurementNumber": 2,
+                        "length": 27.188999425331797,
+                        "viewport": {
+                            "scale": 2.375,
+                            "translation": {
+                                "x": 0,
+                                "y": 0
+                            },
+                            "voi": {
+                                "windowWidth": 1194,
+                                "windowCenter": 597
+                            },
+                            "invert": false,
+                            "pixelReplication": false,
+                            "rotation": 0,
+                            "hflip": false,
+                            "vflip": false,
+                            "labelmap": false,
+                            "displayedArea": {
+                                "tlhc": {
+                                    "x": 1,
+                                    "y": 1
+                                },
+                                "brhc": {
+                                    "x": 320,
+                                    "y": 320
+                                },
+                                "rowPixelSpacing": 0.4375,
+                                "columnPixelSpacing": 0.4375,
+                                "presentationSizeMode": "NONE"
+                            }
+                        },
+                        "unit": "mm",
+                        "flywheelOrigin": {
+                            "type": "user",
+                            "id": "joshuajacobs@flywheel.io"
+                        },
+                        "location": "Supraspinatus - anteroposterior",
+                        "description": ""
+                    }
+                ]
+            },
+            "read": {
+                "joshuajacobs@flywheel_io": {
+                    "date": "2020-07-22T00:58:38.139Z",
+                    "notes": {
+                        "supraspinatusTear": "full",
+                        "supraspinatusRetraction": "humeral",
+                        "supraspinatusDifficulty": "none",
+                        "infraspinatusTear": "fullContiguous",
+                        "infraspinatusDifficulty": "none",
+                        "subscapularisTear": "none",
+                        "subscapularisDifficulty": "none"
+                    },
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}

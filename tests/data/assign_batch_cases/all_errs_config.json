@@ -1,0 +1,16 @@
+{
+    "config": {
+        "case_coverage": 3
+    },
+    "inputs": {
+        "batch_csv": {
+            "type": "project",
+            "id": "5f174c122384cf000c737b8c",
+            "name": "batch_all_errors1.csv"
+        },
+        "destination": {
+            "type": "project",
+            "id": "5f174c122384cf000c737b8c"
+        }
+    }
+}

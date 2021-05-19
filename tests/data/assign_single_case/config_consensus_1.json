@@ -1,0 +1,11 @@
+{
+    "config": {
+        "reader_email": "gsfr@flywheel.io",
+        "assignment_reason": "Apply Consensus Assessment from Source"
+    },
+    "inputs": {},
+    "destination": {
+        "type": "analysis",
+        "id": "5f174c1b2384cf000c737ba1"
+    }
+}
