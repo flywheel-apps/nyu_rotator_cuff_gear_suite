@@ -528,13 +528,16 @@ def distribute_batch_to_readers(
         # Locate Reader Project
         if reader_email in dest_projects_df.reader_id.values:
             project_id = dest_projects_df.loc[
-                dest_projects_df['reader_id'] == reader_email, 'project_id'][0]
-            #indx = dest_projects_df[dest_projects_df.reader_id == reader_email].index[0]
-            project_id = dest_projects_df.id[indx]
-            reader_proj = fw_client.get(project_id).reload()
+                dest_projects_df['reader_id'] == reader_email, 'id'][0]
+            
+            # Leaving this in until above is fully vetted:
+            # OLD WAY:
+            # indx = dest_projects_df[dest_projects_df.reader_id == reader_email].index[0]
+            # project_id = dest_projects_df.id[indx]
+            # reader_proj = fw_client.get(project_id).reload()
+            
         # This will be caught as a non-valid reader,
         # padding these variables to pass then to validation function.
-        # TODO: find a more graceful way to do this
         else:
             indx = dest_projects_df.index[0]
             project_id = dest_projects_df.id[indx]
