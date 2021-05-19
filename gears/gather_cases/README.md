@@ -58,3 +58,12 @@ On successful execution of the `gather-cases` gear, the following csv (comma-sep
       * RAS_End: end point of measurement in RAS-space
       * ijk_to_RAS: Matrix converting ijk to RAS coordinates (4x4)
   * AdditionalNotes: Any notes left by the reader.
+  
+* **reader_progress_report.csv**: A csv file showing an overall summary of the progress of each of the readers.  The fields of the csv are as follows:
+  * **reader_id**: The id of the reader.
+  * **completed_cases**: The total number of cases that this reader has completed.
+  * **assigned_cases**: The total number of cases that this reader currently has assigned to them.
+  * **percent_assigned_completed**: The percent of the currently assigned cases that the reader has completed.
+  * **max_cases**: The maximum number of cases that this reader can ever have assigned to them.  Calculated by `completed_cases / assigned_cases * 100`.
+  * **percent_max_completed**: The percent of completed cases calculated by `completed_cases / max_cases * 100`.
+    

@@ -840,9 +840,9 @@ def generate_summary_report(fw_client, case_assessment_df):
             "reader_id",
             "completed_cases",
             "assigned_cases",
-            "percent_assigned",
+            "percent_assigned_completed",
             "max_cases",
-            "percent_max",
+            "percent_max_completed",
         ]
     )
 
