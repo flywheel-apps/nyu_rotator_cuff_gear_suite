@@ -46,9 +46,17 @@ def main(context):
         # Check for projects in the reader group
         group = fw_client.get(reader_group_id).reload()
         if len(group.projects.find("label=~Reader [0-9][0-9]?")) == 0:
-            raise UninitializedGroupError(
-                'The "Readers" group has not been initialized.'
-            )
+            
+            # For Legacy check for "Readers" groups
+            reader_group_id = "readers"
+            group = fw_client.get(reader_group_id).reload()
+            
+            log.debug("Looking for legacy group 'Readers'")
+            
+            if len(group.projects.find("label=~Reader [0-9][0-9]?")) == 0:
+                raise UninitializedGroupError(
+                    'The "Readers" group has not been initialized.'
+                )
 
         source_sessions_df, case_assessment_df = gather_case_data_from_readers(
             fw_client, source_project, copyroi
