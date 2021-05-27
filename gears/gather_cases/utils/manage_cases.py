@@ -4,7 +4,7 @@ from ast import literal_eval as leval
 from pathlib import Path
 import json
 
-
+from flywheel import ApiException
 import numpy as np
 import pandas as pd
 import requests
@@ -422,10 +422,17 @@ def copy_rois_to_source(fw_client, session):
 
             # loop through each measurement type (ROI, length, etc)
             for meas_type in assignment_measurements:
-
+                
+                if namespace not in ohif_viewer:
+                    ohif_viewer[namespace] = {}
+                    
                 # If it's not already present in the source ohif viewer, just initialize
                 # that ROI type with this data and move on.
-                if meas_type not in ohif_viewer[namespace]:
+                if meas_type not in ohif_viewer.get(namespace, {}):
+                    
+                    for current_meas in assignment_measurements[meas_type]:
+                        current_meas["FromBlindReader"] = True
+                    
                     ohif_viewer[namespace][meas_type] = assignment_measurements[
                         meas_type
                     ]
@@ -510,7 +517,7 @@ def fill_session_attributes(fw_client, project_features, session):
         fw_client (flywheel.Client): The active flywheel client
         project_features (dict): A dictionary representing features of the
             source project
-        session (flywheel.Session): The flywheel session object being queried for
+        session (flywheel.Session): The source flywheel session object being queried for
             completion status
 
     Returns:
@@ -550,7 +557,14 @@ def fill_session_attributes(fw_client, project_features, session):
 
     # This crashes if assigned sessions have been deleted for whatever reason
     for assignment in session_features["assignments"]:
-        assigned_session = fw_client.get(assignment["session_id"])
+        try:
+            assigned_session = fw_client.get(assignment["session_id"])
+        except ApiException:
+            log.warning(f"Assigned session {assignment['session_id']} hase been deleted\n"
+                        f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
+                        f"for reader {assignment['reader_id']}")
+            continue
+            
         assigned_session = assigned_session.reload()
         assigned_session_info = assigned_session.info
 
@@ -562,6 +576,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 assignment["status"] = "Classified"
                 session_attributes["classified"] += 1
                 reader_id = assignment["reader_id"].replace(".", "_")
+                
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
                     log.warning(
@@ -641,9 +656,16 @@ def fill_reader_case_data(fw_client, project_features, session):
     )
     case_assignments = []
     for assignment in session_features["assignments"]:
-        assigned_session = fw_client.get(assignment["session_id"]).reload()
+        
+        try:
+            assigned_session = fw_client.get(assignment["session_id"])
+        except ApiException:
+            log.warning(f"Assigned session {assignment['session_id']} hase been deleted\n"
+                        f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
+                        f"for reader {assignment['reader_id']}")
+            continue
+            
         assigned_session_info = assigned_session.info
-
         case_assignment_status = CASE_ASSESSMENT_REC.copy()
         case_assignment_status["id"] = session.id
         case_assignment_status["subject"] = session.subject.label
@@ -654,11 +676,17 @@ def fill_reader_case_data(fw_client, project_features, session):
         user_data = []
         if ohif_viewer:
             completed_status, error_msg = (False, None)
-
+            # If there is a read on the ohif viewer metadata
             if ohif_viewer.get("read"):
+                # Check if that read is the same as the "assigned reader" id
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
+                    # IF we don't find that reader's read, take the first 
+                    # read found as the "current" reader ID.  Change this in the reports
                     reader_id = list(ohif_viewer["read"].keys())[0]
+                    case_assignment_status["reader_id"] = reader_id
+                
+                
 
                 user_data = ohif_viewer["read"][reader_id]["notes"]
 
@@ -898,7 +926,7 @@ def generate_summary_report(fw_client, case_assessment_df):
 
         # Append a row to the progress report
         progress_report = progress_report.append(
-            reader_df, ignore_index=True, sort=False
+            [reader_df], ignore_index=True
         )
 
     return progress_report
