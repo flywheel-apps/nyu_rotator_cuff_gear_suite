@@ -684,7 +684,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                     # IF we don't find that reader's read, take the first 
                     # read found as the "current" reader ID.  Change this in the reports
                     reader_id = list(ohif_viewer["read"].keys())[0]
-                    case_assignment_status["reader_id"] = reader_id
+                    case_assignment_status["reader_id"] = reader_id.replace("_", ".")
                 
                 
 
