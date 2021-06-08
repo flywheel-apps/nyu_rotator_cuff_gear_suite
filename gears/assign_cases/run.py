@@ -32,6 +32,7 @@ def main(context):
         source_project = fw_client.get(analysis.parents["project"])
         reader_group_id = context.config.get("reader_group_id")
         source_group_id = source_project.group
+
         if reader_group_id is None:
             reader_group_id = source_group_id
 
