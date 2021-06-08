@@ -30,5 +30,10 @@
             "type": "integer"
         }
     },
+    "reader_group_id": {
+            "optional": true,
+            "description": "The flywheel ID of the readers group (default is 'readers')",
+            "type": "string"
+        },
     "command": "/flywheel/v0/run.py"
 }
