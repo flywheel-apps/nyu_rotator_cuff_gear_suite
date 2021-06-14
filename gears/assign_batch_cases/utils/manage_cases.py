@@ -197,15 +197,15 @@ def check_valid_reader(fw_client, reader_id, group_id):
     Returns:
         str: Returns reader's project id on success, `None` on failure
     """
-
-    group_projects = fw_client.projects.find(f'group="{group_id}"')
+    log.info(f"checking for reader {reader_id} in group {group_id}")
+    group_projects = fw_client.projects.find(f'group={group_id}')
 
     proj_roles = [
         role.id
         for role in fw_client.get_all_roles()
         if role.label in ["read-write", "read-only"]
     ]
-
+    log.debug(proj_roles)
     # Below is the "original" code, which was modified to the code immediately below it.
     # List comprehension is faster, but I have expanded it for better logging, AND also
     # there was a problem with the new flywheel permissions that caused an error with 
@@ -225,29 +225,56 @@ def check_valid_reader(fw_client, reader_id, group_id):
 
     valid_reader_ids = []
     for proj in group_projects:
+        proj = proj.reload()
         log.debug(f"searching for permissions in {proj.label}")
         for perm in proj.permissions:
             log.debug(f"Found permission: {perm}")
             role_match = set(perm.role_ids).intersection(proj_roles)
             log.debug(f"roles match {role_match}")
             if role_match:
-                valid_reader_ids.extend(perm.id)
+                valid_reader_ids.append(perm.id)
 
+    log.debug('Valid reader ids')
+    log.debug(valid_reader_ids)
 
+    reader_project = [None]
 
-    reader_project = None
+    # if reader_id in valid_reader_ids:
+    #     log.debug('ID found in valid readers')
+    #     reader_project = [
+    #         proj
+    #         for proj in group_projects
+    #         if reader_id
+    #         in [
+    #             perm.id
+    #             for perm in proj.permissions
+    #             if set(perm.role_ids).intersection(proj_roles)
+    #         ]
+    #     ][0]
+
 
     if reader_id in valid_reader_ids:
-        reader_project = [
-            proj
-            for proj in group_projects
-            if reader_id
-            in [
-                perm.id
-                for perm in proj.permissions
-                if set(perm.role_ids).intersection(proj_roles)
-            ]
-        ][0]
+        log.debug('ID found in valid readers')
+        reader_project = []
+        for proj in group_projects:
+            ids=[]
+
+            for perm in proj.permissions:
+                log.debug(perm.role_ids)
+                if set(perm.role_ids).intersection(proj_roles):
+                    log.debug('found intersection')
+                    log.debug(f"adding {perm.id}")
+                    ids.append(perm.id)
+
+            if reader_id in ids:
+                log.debug('appending project')
+                reader_project.append(proj)
+
+    reader_project = reader_project[0]
+
+            #if reader_id in [perm.id for perm in proj.permissions if set(perm.role_ids).intersection(proj_roles)]][0]
+
+
 
     return reader_project
 
@@ -522,7 +549,6 @@ def distribute_batch_to_readers(
             session_features = set_session_features(src_session, case_coverage)
         else:
             session_features = {}
-
 
 
         # Locate Reader Project

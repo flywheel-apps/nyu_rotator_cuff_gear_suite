@@ -427,8 +427,9 @@ def export_acquisition(fw_client, source_acquisition, dest_session):
 
     created_container = define_created(dest_acquisition)
 
-    for tag in source_acquisition.tags:
-        dest_acquisition.add_tag(tag)
+    if source_acquisition.tags is not None:
+        for tag in source_acquisition.tags:
+            dest_acquisition.add_tag(tag)
 
     # Export the individual files in each acquisition
     log.info("Exporting files to %s...", dest_acquisition.label)
