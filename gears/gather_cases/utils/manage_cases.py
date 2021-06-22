@@ -687,7 +687,7 @@ def fill_reader_case_data(fw_client, project_features, session):
                     # read found as the "current" reader ID.  Change this in the reports
                     reader_id = list(ohif_viewer["read"].keys())[0]
                     case_assignment_status["reader_id"] = reader_id.replace("_", ".")
-                
+
                 
 
                 user_data = ohif_viewer["read"][reader_id]["notes"]
@@ -868,6 +868,7 @@ def generate_summary_report(fw_client, case_assessment_df):
     progress_report = pd.DataFrame(
         columns=[
             "reader_id",
+            "reader_project"
             "completed_cases",
             "assigned_cases",
             "percent_assigned_completed",
@@ -876,14 +877,10 @@ def generate_summary_report(fw_client, case_assessment_df):
         ]
     )
 
-    for reader in readers:
+    grouped_reads = case_assessment_df.groupby(['reader_id', 'reader_project'])
+    for (reader_id, project_id), current_reader_df in grouped_reads:
 
-        log.debug(f"looking for reader {reader}")
-
-        # Extract all cases assigned to this reader
-        current_reader_df = case_assessment_df[
-            case_assessment_df["reader_id"] == reader
-        ]
+        log.debug(f"looking for reader {reader_id}")
 
         # Count the number of cases that have "True" in the "completed" column
         completed_cases = current_reader_df["completed"].value_counts().get(True, 0)
@@ -895,8 +892,7 @@ def generate_summary_report(fw_client, case_assessment_df):
         # because I believe this is the most certain way to ensure that we are looking
         # at the correct reader study.  This also provides a quick way to match reader
         # names to their studies.
-        sample_id = current_reader_df["reader_project"].iloc[0]
-        reader_project = fw_client.get_project(sample_id)
+        reader_project = fw_client.get_project(project_id)
         project_features = reader_project.info.get("project_features", {})
         max_cases = project_features.get("max_cases", "NA")
         log.info(f"max_cases: {max_cases}")
@@ -918,7 +914,8 @@ def generate_summary_report(fw_client, case_assessment_df):
 
         # Create a dict for this readers values
         reader_df = {
-            "reader_id": reader,
+            "reader_id": reader_id,
+            "reader_project": reader_project.label,
             "completed_cases": completed_cases,
             "assigned_cases": assigned_cases,
             "percent_assigned_completed": percent_assigned,
