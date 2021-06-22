@@ -459,14 +459,15 @@ def copy_rois_to_source(fw_client, session):
                             )
 
         log.debug("checking for reads")
+
         # Now rinse and repeat for reads:
         namespace = "read"
         if namespace in assignment:
             assignment_reads = assignment[namespace]
             log.debug(f"assignment reads: {assignment_reads}")
 
-            # If readers arent already present in the source ohif viewer, just
-            # initialize that ROI type with this data and move on.
+            # If reades arent already present in the source ohif viewer, just
+            # initialize reads
             if namespace not in ohif_viewer:
                 ohif_viewer[namespace] = assignment_reads
                 log.debug("namespace not present, copying.")
@@ -474,6 +475,7 @@ def copy_rois_to_source(fw_client, session):
             # Otherwise we need to make sure this measurement ID isn't already
             # uploaded, and if not append to the
             # `ohif_viewer["measurement"]["meas_type"]` list
+
             else:
 
                 log.debug("Namespace found, augmenting")

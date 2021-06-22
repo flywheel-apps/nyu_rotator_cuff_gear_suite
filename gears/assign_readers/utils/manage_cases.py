@@ -199,7 +199,7 @@ def find_readers_in_project_by_permission(project, reader_roles):
         role_match = set(perm.role_ids).intersection(reader_roles)
         if role_match:
             log.debug(f"roles match {role_match}")
-            reader_ids.append(perm.id)
+            reader_ids.extend(perm.id)
 
     return reader_ids
 
@@ -335,8 +335,7 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         if reader_id not in group_reader_ids:
             continue
 
-        reader_project = find_reader_project_from_id(group_projects, reader_id, proj_roles)
-        reader_project = reader_project.reload()
+        reader_project = find_reader_project_from_id(group_projects, reader_id, reader_roles)
         # If this reader has no project yet, skip (OR SHOULD THIS ERROR?)
         if reader_project is None:
             log.info(f"skipping reader {reader_id} with no current project")
@@ -508,7 +507,7 @@ def create_or_update_reader_projects(
     
     for reader, _max_cases in readers_to_instantiate:
         # reader_number = len(group.projects()) + 1
-        reader_number = get_reader_number(fw_client, group.id)
+        reader_number = len(fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')) + 1
         project_label = "Reader " + str(reader_number)
         project_info = {
             "project_features": {"assignments": [], "max_cases": _max_cases, "reader": {"id": reader}}
@@ -523,11 +522,3 @@ def create_or_update_reader_projects(
         created_data.append(created_container)
 
     return created_data
-
-
-def get_reader_number(fw_client, group_id):
-
-    projects = fw_client.projects.find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?')
-    numbers = [int(p.label.split('Reader ')[-1]) for p in projects]
-    number = max(numbers)+1
-    return number
