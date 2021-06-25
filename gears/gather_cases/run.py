@@ -23,6 +23,7 @@ from utils.manage_cases import (
 log = logging.getLogger(__name__)
 log.setLevel("DEBUG")
 
+
 def main(context):
     try:
         fw_client = context.client
@@ -46,13 +47,13 @@ def main(context):
         # Check for projects in the reader group
         group = fw_client.get(reader_group_id).reload()
         if len(group.projects.find("label=~Reader [0-9][0-9]?[0-9]?")) == 0:
-            
+
             # For Legacy check for "Readers" groups
             reader_group_id = "readers"
             group = fw_client.get(reader_group_id).reload()
-            
+
             log.debug("Looking for legacy group 'Readers'")
-            
+
             if len(group.projects.find("label=~Reader [0-9][0-9]?")) == 0:
                 raise UninitializedGroupError(
                     'The "Readers" group has not been initialized.'
@@ -63,8 +64,24 @@ def main(context):
         )
 
         progress_report = generate_summary_report(fw_client, case_assessment_df)
+        columns = [
+            "reader_id",
+            "completed",
+            "completed_timestamp",
+            "source project label",
+            "source subject label",
+            "source session label",
+            "reader project label",
+            "reader subject label",
+            "reader session label",
+            "source session id",
+            "reader session id"
+        ]
+
         progress_report.to_csv(
-            str(context.output_dir / "reader_progress_report.csv"), index=False
+            str(context.output_dir / "reader_progress_report.csv"),
+            index=False,
+            columns=columns,
         )
 
         source_sessions_df.to_csv(
@@ -89,11 +106,17 @@ def main(context):
         MissingDICOMTagError,
     ) as e:
         log.error(e.message)
-        log.fatal("Error executing assign-readers.",)
+        log.fatal(
+            "Error executing assign-readers.",
+        )
         return 1
     except Exception as e:
-        log.exception(e,)
-        log.fatal("Error executing gather-cases-data.",)
+        log.exception(
+            e,
+        )
+        log.fatal(
+            "Error executing gather-cases-data.",
+        )
         return 1
 
     log.info("gather-cases-data completed Successfully!")
@@ -102,7 +125,7 @@ def main(context):
 
 if __name__ == "__main__":
     with GearToolkitContext() as gear_context:
-        gear_context.init_logging('debug')
+        gear_context.init_logging("debug")
         exit_status = main(gear_context)
 
     log.info("exit_status is %s", exit_status)
