@@ -63,7 +63,6 @@ def main(context):
         )
 
         progress_report = generate_summary_report(fw_client, case_assessment_df)
-
         progress_report.to_csv(
             str(context.output_dir / "reader_progress_report.csv"), index=False
         )

@@ -12,14 +12,25 @@ import requests
 log = logging.getLogger(__name__)
 
 CASE_ASSESSMENT_REC = {
-    "id": None,
-    "subject": None,
-    "session": None,
+    "reader session id": None,
+    "reader session label": None,
+    "reader subject label": None,
+    "reader project id": None,
+    "reader project label": None,
+    "source session id": None,
+    "source session label": None,
+    "source subject label": None,
+    "source project id": None,
+    "source project label": None,
+
     "reader_id": None,
     "completed": False,
     "completed_timestamp": None,
-    "reader_project": None,
 }
+
+
+
+
 
 OHIF_VIEWER_REC = {"measurements": {}, "read": {}}
 
@@ -631,6 +642,8 @@ def fill_reader_case_data(fw_client, project_features, session):
     """
     Acquire the status and data from each assigned case
 
+    project_features comes from the source project,  session comes from the source session
+
     Args:
         fw_client (flywheel.Client): The active flywheel client
         project_features (dict): Valid features for the Master Project.
@@ -669,11 +682,28 @@ def fill_reader_case_data(fw_client, project_features, session):
             
         assigned_session_info = assigned_session.info
         case_assignment_status = CASE_ASSESSMENT_REC.copy()
-        case_assignment_status["id"] = session.id
-        case_assignment_status["subject"] = session.subject.label
-        case_assignment_status["session"] = session.label
+        case_assignment_status["reader session id"] = session.id
+        case_assignment_status["reader session label"] = session.label
+
+        case_assignment_status["reader subject label"] = session.subject.label
+
+        reader_project = fw_client.get_project(assigned_session.project)
+        case_assignment_status["reader project id"] = assigned_session.project # formerly reader_project
+        case_assignment_status["reader project label"] = reader_project.label
+
+        case_assignment_status["source session id"] = session.id
+        case_assignment_status["source session label"] = session.label
+
+        case_assignment_status["source subject label"] = session.subject.label
+
+        project = fw_client.get_project(session.project)
+        case_assignment_status["source project id"] = project.id
+        case_assignment_status["source project label"] = project.label
+
+
         case_assignment_status["reader_id"] = assignment["reader_id"]
-        case_assignment_status["reader_project"] = assigned_session.project
+
+
         ohif_viewer = assigned_session_info.get("ohifViewer")
         user_data = []
         if ohif_viewer:
@@ -849,6 +879,31 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
 
 def generate_summary_report(fw_client, case_assessment_df):
     """ Generates a third report summary on reader progress
+
+    Generates a progress report summary for each reader, indicating how many cases
+    they've been assigned, how many they've completed, and how many they have max.
+
+    Args:
+        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
+        source_project (flywheel.Project): The source project for all sessions
+        case_assessment_df (pandas.DataFrame):
+
+    Returns:
+
+    """
+
+    columns = ["source session id", "source session label", "source project label", "reader session id", "reader session label", "reader project label", "reader_id", "completed", "completed_timestamp"]
+
+    new_df = case_assessment_df.copy()
+
+    for key in new_df.keys():
+        if key not in columns:
+            new_df.pop(key)
+    return new_df
+
+
+def generate_summary_report_old(fw_client, case_assessment_df):
+    """ Generates a third report summary on reader progress
     
     Generates a progress report summary for each reader, indicating how many cases
     they've been assigned, how many they've completed, and how many they have max.
@@ -868,7 +923,7 @@ def generate_summary_report(fw_client, case_assessment_df):
     progress_report = pd.DataFrame(
         columns=[
             "reader_id",
-            "reader_project"
+            "reader_project",
             "completed_cases",
             "assigned_cases",
             "percent_assigned_completed",
@@ -876,6 +931,9 @@ def generate_summary_report(fw_client, case_assessment_df):
             "percent_max_completed",
         ]
     )
+
+    #if "reader_project" not in case_assessment_df:
+        # df = add_reader_column_to_df(df)
 
     grouped_reads = case_assessment_df.groupby(['reader_id', 'reader_project'])
     for (reader_id, project_id), current_reader_df in grouped_reads:
@@ -925,7 +983,12 @@ def generate_summary_report(fw_client, case_assessment_df):
 
         # Append a row to the progress report
         progress_report = progress_report.append(
-            [reader_df], ignore_index=True
+            reader_df, ignore_index=True
         )
 
     return progress_report
+
+
+def add_reader_column_to_df(df):
+    # TODO: when someone tries to run the NEW gather cases gear on an old reader project this may need to be built
+    pass
