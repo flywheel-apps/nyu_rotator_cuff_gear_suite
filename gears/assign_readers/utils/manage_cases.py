@@ -335,7 +335,8 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         if reader_id not in group_reader_ids:
             continue
 
-        reader_project = find_reader_project_from_id(group_projects, reader_id, reader_roles)
+        reader_project = find_reader_project_from_id(group_projects, reader_id, proj_roles)
+        reader_project = reader_project.reload()
         # If this reader has no project yet, skip (OR SHOULD THIS ERROR?)
         if reader_project is None:
             log.info(f"skipping reader {reader_id} with no current project")
