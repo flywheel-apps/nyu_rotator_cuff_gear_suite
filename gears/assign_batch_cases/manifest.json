@@ -45,5 +45,8 @@
             "type": "integer"
         }
     },
+    "environment": {
+        "FLYWHEEL_SDK_REQUEST_TIMEOUT": "600"
+    },
     "command": "/flywheel/v0/run.py"
 }
