@@ -508,7 +508,7 @@ def create_or_update_reader_projects(
     
     for reader, _max_cases in readers_to_instantiate:
         # reader_number = len(group.projects()) + 1
-        reader_number = len(fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')) + 1
+        reader_number = get_reader_number(fw_client, group.id)
         project_label = "Reader " + str(reader_number)
         project_info = {
             "project_features": {"assignments": [], "max_cases": _max_cases, "reader": {"id": reader}}
@@ -523,3 +523,11 @@ def create_or_update_reader_projects(
         created_data.append(created_container)
 
     return created_data
+
+
+def get_reader_number(fw_client, group_id):
+
+    projects = fw_client.projects.find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?')
+    numbers = [int(p.label.split('Reader ')[-1]) for p in projects]
+    number = max(numbers)+1
+    return number
