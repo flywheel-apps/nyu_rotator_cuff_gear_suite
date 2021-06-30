@@ -22,7 +22,8 @@ RUN pip3 install --upgrade pip && \
 # Specify ENV Variables
 ENV \ 
     PATH=$PATH  \ 
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH 
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+    FLYWHEEL_SDK_REQUEST_TIMEOUT=600
 
 # Make directory for flywheel spec (v0):
 ENV FLYWHEEL /flywheel/v0
