@@ -199,7 +199,7 @@ def find_readers_in_project_by_permission(project, reader_roles):
         role_match = set(perm.role_ids).intersection(reader_roles)
         if role_match:
             log.debug(f"roles match {role_match}")
-            reader_ids.extend(perm.id)
+            reader_ids.append(perm.id)
 
     return reader_ids
 

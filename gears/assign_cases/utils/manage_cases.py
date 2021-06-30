@@ -100,7 +100,7 @@ def find_readers_in_project_by_permission(project, reader_roles):
         role_match = set(perm.role_ids).intersection(reader_roles)
         if role_match:
             log.debug(f"roles match {role_match}")
-            reader_ids.extend(perm.id)
+            reader_ids.append(perm.id)
 
     return reader_ids
 
@@ -409,6 +409,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         fw_client, reader_group
     )
 
+    # Todo: fix this damn divide by zero error
     if len(src_sessions) % dest_projects_df.shape[0] != 0:
         log.warning(
             "The number of sessions/cases (%i) in this batch is not divisible by the "
