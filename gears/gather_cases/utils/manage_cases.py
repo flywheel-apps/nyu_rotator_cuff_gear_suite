@@ -602,6 +602,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 ohif_viewer, user_data
             )
 
+# TODO: Put this in a loop
             if completed_status and not error_msg:
                 assignment["status"] = "Completed"
                 session_attributes["completed"] += 1
