@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_cases",
     "cite": "",
-    "version": "0.2.2s",
+    "version": "0.3.0",
     "custom": {
-        "docker-image": "flywheel/assign-cases:0.2.2",
+        "docker-image": "flywheel/assign-cases:0.3.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-cases:0.2.2"
+            "image": "flywheel/assign-cases:0.3.0"
         }
     },
     "inputs": {
@@ -32,7 +32,7 @@
 
         "reader_group_id": {
             "optional": true,
-            "description": "The flywheel ID of the readers group (default is 'readers')",
+            "description": "The flywheel ID of the readers group (default is same group as source project)",
             "type": "string"
         }
     },

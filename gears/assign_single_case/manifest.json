@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_single_case",
     "cite": "",
-    "version": "0.1.9-dev-b",
+    "version": "0.3.0",
     "custom": {
-        "docker-image": "flywheel/assign-single-case:0.1.9-dev-b",
+        "docker-image": "flywheel/assign-single-case:0.3.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-single-case:0.1.9-dev-b"
+            "image": "flywheel/assign-single-case:0.3.0"
         }
     },
     "inputs": {

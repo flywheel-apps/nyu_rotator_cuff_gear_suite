@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/blind_reader_study/",
     "source": "https://github.com/flywheel-apps/blind_reader_study/gears/assign_readers",
     "cite": "",
-    "version": "0.2.2r",
+    "version": "0.3.0a",
     "custom": {
-        "docker-image": "flywheel/assign-readers:0.2.2",
+        "docker-image": "flywheel/assign-readers:0.3.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-readers:0.2.2"
+            "image": "flywheel/assign-readers:0.3.0"
         }
     },
     "inputs": {
