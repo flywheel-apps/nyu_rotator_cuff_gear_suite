@@ -42,11 +42,13 @@ def main(context):
         
         try:
             reader_group = fw_client.get_group(reader_group_id)
+            reader_group_label = reader_group.label
         except Exception as e:
             log.warning(f"No group with the ID {reader_group_id}.  Group will be created.")
             reader_group_label = reader_group_id
             
-        reader_group_label = reader_group.label
+
+        log.debug(f"using group {reader_group_label}")
         # Find or create reader group
         reader_group, _created_data = find_or_create_group(
             fw_client, reader_group_id, reader_group_label

@@ -12,14 +12,21 @@ import requests
 log = logging.getLogger(__name__)
 
 CASE_ASSESSMENT_REC = {
-    "id": None,
-    "subject": None,
-    "session": None,
+    "reader session id": None,
+    "reader session label": None,
+    "reader subject label": None,
+    "reader project id": None,
+    "reader project label": None,
+    "source session id": None,
+    "source session label": None,
+    "source subject label": None,
+    "source project id": None,
+    "source project label": None,
     "reader_id": None,
     "completed": False,
     "completed_timestamp": None,
-    "reader_project": None,
 }
+
 
 OHIF_VIEWER_REC = {"measurements": {}, "read": {}}
 
@@ -354,7 +361,9 @@ def assess_completed_status(ohif_viewer, user_data):
             "There was an error in the case assessment data. "
             "Please examine and correct."
         )
-        log.exception(e,)
+        log.exception(
+            e,
+        )
         error_msg = (
             "ERROR: An error occurred in the case assessment. "
             "Please examine and correct."
@@ -422,17 +431,17 @@ def copy_rois_to_source(fw_client, session):
 
             # loop through each measurement type (ROI, length, etc)
             for meas_type in assignment_measurements:
-                
+
                 if namespace not in ohif_viewer:
                     ohif_viewer[namespace] = {}
-                    
+
                 # If it's not already present in the source ohif viewer, just initialize
                 # that ROI type with this data and move on.
                 if meas_type not in ohif_viewer.get(namespace, {}):
-                    
+
                     for current_meas in assignment_measurements[meas_type]:
                         current_meas["FromBlindReader"] = True
-                    
+
                     ohif_viewer[namespace][meas_type] = assignment_measurements[
                         meas_type
                     ]
@@ -510,7 +519,7 @@ def copy_rois_to_source(fw_client, session):
 def fill_session_attributes(fw_client, project_features, session):
     """
     Acquire data from a case to populate the output summary
-    
+
     Sorry Josh, that docstring is shit.  This function updates the metadata on the
     source session to include any completed reads/measurements from the assigned cases.
     These are added to the "session_features" meatadata namespace in the source session.
@@ -562,11 +571,13 @@ def fill_session_attributes(fw_client, project_features, session):
         try:
             assigned_session = fw_client.get(assignment["session_id"])
         except ApiException:
-            log.warning(f"Assigned session {assignment['session_id']} hase been deleted\n"
-                        f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
-                        f"for reader {assignment['reader_id']}")
+            log.warning(
+                f"Assigned session {assignment['session_id']} hase been deleted\n"
+                f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
+                f"for reader {assignment['reader_id']}"
+            )
             continue
-            
+
         assigned_session = assigned_session.reload()
         assigned_session_info = assigned_session.info
 
@@ -578,7 +589,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 assignment["status"] = "Classified"
                 session_attributes["classified"] += 1
                 reader_id = assignment["reader_id"].replace(".", "_")
-                
+
                 if not ohif_viewer["read"].get(reader_id):
                     reader_id = list(ohif_viewer["read"].keys())[0]
                     log.warning(
@@ -602,6 +613,7 @@ def fill_session_attributes(fw_client, project_features, session):
                 ohif_viewer, user_data
             )
 
+# TODO: Put this in a loop
             if completed_status and not error_msg:
                 assignment["status"] = "Completed"
                 session_attributes["completed"] += 1
@@ -631,6 +643,8 @@ def fill_reader_case_data(fw_client, project_features, session):
     """
     Acquire the status and data from each assigned case
 
+    project_features comes from the source project,  session comes from the source session
+
     Args:
         fw_client (flywheel.Client): The active flywheel client
         project_features (dict): Valid features for the Master Project.
@@ -658,22 +672,41 @@ def fill_reader_case_data(fw_client, project_features, session):
     )
     case_assignments = []
     for assignment in session_features["assignments"]:
-        
+
         try:
             assigned_session = fw_client.get(assignment["session_id"])
         except ApiException:
-            log.warning(f"Assigned session {assignment['session_id']} hase been deleted\n"
-                        f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
-                        f"for reader {assignment['reader_id']}")
+            log.warning(
+                f"Assigned session {assignment['session_id']} hase been deleted\n"
+                f"for session {session.id}, '{session.subject.label}/{session.label}'\n"
+                f"for reader {assignment['reader_id']}"
+            )
             continue
-            
+
         assigned_session_info = assigned_session.info
         case_assignment_status = CASE_ASSESSMENT_REC.copy()
-        case_assignment_status["id"] = session.id
-        case_assignment_status["subject"] = session.subject.label
-        case_assignment_status["session"] = session.label
+        case_assignment_status["reader session id"] = session.id
+        case_assignment_status["reader session label"] = session.label
+
+        case_assignment_status["reader subject label"] = session.subject.label
+
+        reader_project = fw_client.get_project(assigned_session.project)
+        case_assignment_status[
+            "reader project id"
+        ] = assigned_session.project  # formerly reader_project
+        case_assignment_status["reader project label"] = reader_project.label
+
+        case_assignment_status["source session id"] = session.id
+        case_assignment_status["source session label"] = session.label
+
+        case_assignment_status["source subject label"] = session.subject.label
+
+        project = fw_client.get_project(session.project)
+        case_assignment_status["source project id"] = project.id
+        case_assignment_status["source project label"] = project.label
+
         case_assignment_status["reader_id"] = assignment["reader_id"]
-        case_assignment_status["reader_project"] = assigned_session.project
+
         ohif_viewer = assigned_session_info.get("ohifViewer")
         user_data = []
         if ohif_viewer:
@@ -683,12 +716,10 @@ def fill_reader_case_data(fw_client, project_features, session):
                 # Check if that read is the same as the "assigned reader" id
                 reader_id = assignment["reader_id"].replace(".", "_")
                 if not ohif_viewer["read"].get(reader_id):
-                    # IF we don't find that reader's read, take the first 
+                    # IF we don't find that reader's read, take the first
                     # read found as the "current" reader ID.  Change this in the reports
                     reader_id = list(ohif_viewer["read"].keys())[0]
                     case_assignment_status["reader_id"] = reader_id.replace("_", ".")
-                
-                
 
                 user_data = ohif_viewer["read"][reader_id]["notes"]
 
@@ -758,7 +789,9 @@ def fill_reader_case_data(fw_client, project_features, session):
                         "There was an error in the case assessment data. "
                         "Please examine and correct."
                     )
-                    log.exception(e,)
+                    log.exception(
+                        e,
+                    )
 
                     case_assignment_status["completed"] = completed_status
                     case_assignment_status["additionalNotes"] += error_msg
@@ -777,7 +810,7 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
     2) if assigned, check for completion status (classified, measured)
     3) record completion status in metadata and spreadsheet.
     4) Generates a summary status sheet.
-    
+
     Obviously somewhere in here it also copies metadata/
 
     Args:
@@ -833,12 +866,12 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
         )
 
         case_assignments = fill_reader_case_data(fw_client, project_features, session)
-        
+
         if case_assignments:
             case_assessment_df = case_assessment_df.append(
                 case_assignments, ignore_index=True
             )
-            
+
         if copyroi:
             copy_rois_to_source(fw_client, session)
 
@@ -848,15 +881,52 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
 
 
 def generate_summary_report(fw_client, case_assessment_df):
-    """ Generates a third report summary on reader progress
-    
+    """Generates a third report summary on reader progress
+
     Generates a progress report summary for each reader, indicating how many cases
     they've been assigned, how many they've completed, and how many they have max.
-    
+
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
-        case_assessment_df (pandas.DataFrame): 
+        case_assessment_df (pandas.DataFrame):
+
+    Returns:
+
+    """
+
+    columns = [
+        "reader_id",
+        "completed",
+        "completed_timestamp",
+        "source project label",
+        "source subject label",
+        "source session label",
+        "reader project label",
+        "reader subject label",
+        "reader session label",
+        "source session id",
+        "reader session id"
+    ]
+
+    new_df = case_assessment_df.copy()
+
+    for key in new_df.keys():
+        if key not in columns:
+            new_df.pop(key)
+    return new_df
+
+
+def generate_summary_report_old(fw_client, case_assessment_df):
+    """Generates a third report summary on reader progress
+
+    Generates a progress report summary for each reader, indicating how many cases
+    they've been assigned, how many they've completed, and how many they have max.
+
+    Args:
+        fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
+        source_project (flywheel.Project): The source project for all sessions
+        case_assessment_df (pandas.DataFrame):
 
     Returns:
 
@@ -868,6 +938,7 @@ def generate_summary_report(fw_client, case_assessment_df):
     progress_report = pd.DataFrame(
         columns=[
             "reader_id",
+            "reader_project",
             "completed_cases",
             "assigned_cases",
             "percent_assigned_completed",
@@ -876,14 +947,13 @@ def generate_summary_report(fw_client, case_assessment_df):
         ]
     )
 
-    for reader in readers:
+    # if "reader_project" not in case_assessment_df:
+    # df = add_reader_column_to_df(df)
 
-        log.debug(f"looking for reader {reader}")
+    grouped_reads = case_assessment_df.groupby(["reader_id", "reader_project"])
+    for (reader_id, project_id), current_reader_df in grouped_reads:
 
-        # Extract all cases assigned to this reader
-        current_reader_df = case_assessment_df[
-            case_assessment_df["reader_id"] == reader
-        ]
+        log.debug(f"looking for reader {reader_id}")
 
         # Count the number of cases that have "True" in the "completed" column
         completed_cases = current_reader_df["completed"].value_counts().get(True, 0)
@@ -895,8 +965,7 @@ def generate_summary_report(fw_client, case_assessment_df):
         # because I believe this is the most certain way to ensure that we are looking
         # at the correct reader study.  This also provides a quick way to match reader
         # names to their studies.
-        sample_id = current_reader_df["reader_project"].iloc[0]
-        reader_project = fw_client.get_project(sample_id)
+        reader_project = fw_client.get_project(project_id)
         project_features = reader_project.info.get("project_features", {})
         max_cases = project_features.get("max_cases", "NA")
         log.info(f"max_cases: {max_cases}")
@@ -918,7 +987,8 @@ def generate_summary_report(fw_client, case_assessment_df):
 
         # Create a dict for this readers values
         reader_df = {
-            "reader_id": reader,
+            "reader_id": reader_id,
+            "reader_project": reader_project.label,
             "completed_cases": completed_cases,
             "assigned_cases": assigned_cases,
             "percent_assigned_completed": percent_assigned,
@@ -927,8 +997,11 @@ def generate_summary_report(fw_client, case_assessment_df):
         }
 
         # Append a row to the progress report
-        progress_report = progress_report.append(
-            [reader_df], ignore_index=True
-        )
+        progress_report = progress_report.append(reader_df, ignore_index=True)
 
     return progress_report
+
+
+def add_reader_column_to_df(df):
+    # TODO: when someone tries to run the NEW gather cases gear on an old reader project this may need to be built
+    pass

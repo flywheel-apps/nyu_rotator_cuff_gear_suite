@@ -230,6 +230,7 @@ def create_project(fw_client, project_label, group, user_id, project_info=None):
             created_container (CREATED_CONTAINER_TEMPLATE)
     """
 
+    log.debug(f"creating project {project_label} in group {group.id}")
     if not project_info:
         project_info = {}
 
