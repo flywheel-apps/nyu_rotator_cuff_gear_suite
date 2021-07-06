@@ -24,8 +24,9 @@ from utils.manage_cases import (
     MissingDataError,
     distribute_batch_to_readers,
 )
-
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
+
 
 
 def main(context):
@@ -38,7 +39,10 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = source_project.group
+        reader_group_id = context.config.get("reader_group_id")
+        source_group_id = source_project.group
+        if reader_group_id is None:
+            reader_group_id = source_group_id
 
         # If gear is run within the Readers group, error and exit
         # if analysis.parents["group"] == reader_group_id:
@@ -99,7 +103,7 @@ def main(context):
 
 if __name__ == "__main__":
     with GearToolkitContext() as gear_context:
-        gear_context.init_logging()
+        gear_context.init_logging('debug')
         exit_status = main(gear_context)
 
     log.info("exit_status is %s", exit_status)

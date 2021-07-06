@@ -165,7 +165,7 @@ def define_reader_csv(context):
     if not reader_csv_path and (
         context.config.get("max_cases")
         and (context.config.get("max_cases") > 0)
-        and (context.config.get("max_cases") < 600)
+        and (context.config.get("max_cases") < 5000)
         and context.config.get("reader_email")
         and re.search(regex, context.config.get("reader_email").lower())
         and context.config.get("reader_firstname")
@@ -189,6 +189,98 @@ def define_reader_csv(context):
         raise InvalidInputError(
             "Cannot proceed without a valid CSV file or valid specified reader!"
         )
+
+
+def find_readers_in_project_by_permission(project, reader_roles):
+
+    reader_ids = []
+    for perm in project.permissions:
+        log.debug(f"Found permission: {perm}")
+        role_match = set(perm.role_ids).intersection(reader_roles)
+        if role_match:
+            log.debug(f"roles match {role_match}")
+            reader_ids.append(perm.id)
+
+    return reader_ids
+
+def find_and_add_readers_by_perm(project, reader_roles):
+
+    info = project.info
+    proj_readers = find_readers_in_project_by_permission(project, reader_roles)
+
+    if len(proj_readers) > 1:
+        log.warning("more than one possible reader found.  assuming first")
+
+    if len(proj_readers) == 0:
+        log.warning("No suitable reader found.")
+        proj_readers = [None]
+
+    pf_reader = proj_readers[0]
+
+    info["project_features"]["reader"] = {"id": pf_reader}
+    project.update_info(info)
+
+    return pf_reader
+
+
+def find_readers_in_projects(projects, reader_roles):
+    """
+
+    Args:
+        projects:
+        reader_roles:
+
+    Returns:
+        reader_ids: (list) a list of reader id's (email addresses)
+
+    """
+
+    if not isinstance(projects, list):
+        projects = [projects]
+
+    reader_ids = []
+    for proj in projects:
+        log.debug(f"Finding readers in project {proj.label}")
+        info = proj.info
+
+        if "project_features" not in info:
+            proj = proj.reload()
+            info = proj.info
+            if "project_features" not in info:
+                log.debug(f'uninitialized project {proj.label}. skipping.')
+                continue
+
+        pf_reader = info["project_features"].get("reader", {}).get("id")
+
+        if pf_reader is None:
+            pf_reader = find_and_add_readers_by_perm(proj, reader_roles)
+
+        if pf_reader is not None:
+            reader_ids.append(pf_reader)
+
+
+    return reader_ids
+
+
+def find_reader_project_from_id(projects, reader_id, reader_roles):
+
+    reader_project = []
+
+    for proj in projects:
+        proj_readers = find_readers_in_projects(proj, reader_roles)
+        if reader_id in proj_readers:
+            reader_project.append(proj)
+
+    if len(reader_project) > 1:
+        log.warning(f"WARNING {len(reader_project)} projects found for reader {reader_id}:")
+        log.warning([p.label for p in reader_project])
+        log.warning(f"Returning first project")
+
+    if len(reader_project) == 0:
+        log.warning(f"No projects found for reader {reader_id}")
+        reader_project = [None]
+
+    return reader_project[0]
 
 
 def update_reader_projects_metadata(fw_client, group_projects, readers_df):
@@ -233,16 +325,9 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
     #     ][0]
     #     for proj in group_projects
     # ]
-    
-    group_reader_ids = []
-    for proj in group_projects:
-        log.debug(f"searching for permissions in {proj.label}")
-        for perm in proj.permissions:
-            log.debug(f"Found permission: {perm}")
-            role_match = set(perm.role_ids).intersection(proj_roles)
-            log.debug(f"roles match {role_match}")
-            if role_match:
-                group_reader_ids.extend(perm.id)
+
+    group_reader_ids = find_readers_in_projects(group_projects, proj_roles)
+
 
     for index in readers_df.index:
         reader_id = readers_df.email[index]
@@ -250,11 +335,12 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
         if reader_id not in group_reader_ids:
             continue
 
-        reader_project = [
-            proj
-            for proj in group_projects
-            if reader_id in [perm.id for perm in proj.permissions]
-        ][0].reload()
+        reader_project = find_reader_project_from_id(group_projects, reader_id, proj_roles)
+        reader_project = reader_project.reload()
+        # If this reader has no project yet, skip (OR SHOULD THIS ERROR?)
+        if reader_project is None:
+            log.info(f"skipping reader {reader_id} with no current project")
+            continue
 
         csv_max_cases = int(readers_df.max_cases[index])
         project_info = reader_project.info
@@ -312,7 +398,7 @@ def instantiate_new_readers(fw_client, group, readers_df):
         fw_client.add_user(fw_user)
 
     # A Reader Project will have only one rw/ro user
-    proj_roles = [
+    reader_roles = [
         role.id
         for role in fw_client.get_all_roles()
         if role.label in ["read-write", "read-only"]
@@ -334,19 +420,12 @@ def instantiate_new_readers(fw_client, group, readers_df):
     #     ][0]
     #     for proj in group.projects()
     # ]
-    
-    project_readers = []
-    for proj in group.projects():
-        log.debug(f"searching for permissions in {proj.label}")
-        for perm in proj.permissions:
-            log.debug(f"Found permission: {perm}")
-            role_match = set(perm.role_ids).intersection(proj_roles)
 
-            log.debug(f"roles match {role_match}")
-            if role_match:
-                project_readers.extend(perm.id)
+    projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')
+    project_readers = find_readers_in_projects(projects, reader_roles)
                 
-    
+    # If the readers email (from the dataframe) is not in the project readers list,
+    # We will initiate it.
     for indx in readers_df[~readers_df.email.isin(project_readers)].index:
         readers_to_instantiate.append(
             (readers_df.email[indx], int(readers_df.max_cases[indx]))
@@ -387,7 +466,7 @@ def create_or_update_reader_projects(
     """
 
     # Generate list of all projects in this group
-    group_projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?')
+    group_projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')
 
     # Keep track of the created containers, in case of "rollback"
     created_data = []
@@ -429,10 +508,10 @@ def create_or_update_reader_projects(
     
     for reader, _max_cases in readers_to_instantiate:
         # reader_number = len(group.projects()) + 1
-        reader_number = len(fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?')) + 1
+        reader_number = get_reader_number(fw_client, group.id)
         project_label = "Reader " + str(reader_number)
         project_info = {
-            "project_features": {"assignments": [], "max_cases": _max_cases}
+            "project_features": {"assignments": [], "max_cases": _max_cases, "reader": {"id": reader}}
         }
 
         new_project, created_container = create_project(
@@ -444,3 +523,11 @@ def create_or_update_reader_projects(
         created_data.append(created_container)
 
     return created_data
+
+
+def get_reader_number(fw_client, group_id):
+
+    projects = fw_client.projects.find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?')
+    numbers = [int(p.label.split('Reader ')[-1]) for p in projects]
+    number = max(numbers)+1
+    return number

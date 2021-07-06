@@ -8,7 +8,8 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_batch_cases",
     "cite": "",
-    "version": "0.2.2",
+
+    "version": "0.2.2j",
     "custom": {
         "docker-image": "flywheel/assign-batch-cases:0.2.2",
         "gear-builder": {
@@ -32,6 +33,11 @@
         }
     },
     "config": {
+        "reader_group_id": {
+            "optional": true,
+            "description": "The flywheel ID of the readers group (default is 'readers')",
+            "type": "string"
+        },
         "case_coverage": {
             "default": 3,
             "minimum": 1,
@@ -39,6 +45,9 @@
             "description": "The number of readers each case will be provided to.",
             "type": "integer"
         }
+    },
+    "environment": {
+        "FLYWHEEL_SDK_REQUEST_TIMEOUT": "600"
     },
     "command": "/flywheel/v0/run.py"
 }
