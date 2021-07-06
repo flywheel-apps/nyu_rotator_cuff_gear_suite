@@ -529,5 +529,8 @@ def get_reader_number(fw_client, group_id):
 
     projects = fw_client.projects.find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?')
     numbers = [int(p.label.split('Reader ')[-1]) for p in projects]
-    number = max(numbers)+1
+    if len(numbers) > 0:
+        number = max(numbers)+1
+    else:
+        number = 1
     return number
