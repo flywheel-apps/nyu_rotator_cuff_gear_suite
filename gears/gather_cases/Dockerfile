@@ -1,14 +1,14 @@
 # Dockerfile exported by GearBuilderGUI.Stash edits before export again
 
 # Inheriting from established docker image:
-FROM ubuntu:bionic
-
+FROM ubuntu:21.10
 # Inheriting from established docker image:
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
 # Install APT dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    python3.9 \
     python3-pip \
     python3-setuptools && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
