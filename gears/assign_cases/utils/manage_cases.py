@@ -550,10 +550,12 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     for indx in dest_projects_df.index:
         project_id = dest_projects_df.loc[indx, "id"]
         reader_proj = fw_client.get(project_id)
+        reader_proj_features = reader_proj.info.get('project_features')
         project_info = {
             "project_features": {
                 "assignments": dest_projects_df.loc[indx, "assignments"],
                 "max_cases": dest_projects_df.loc[indx, "max_cases"],
+                "reader": reader_proj_features['reader']
             }
         }
         reader_proj.update_info(project_info)
