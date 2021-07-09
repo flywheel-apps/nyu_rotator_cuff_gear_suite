@@ -255,7 +255,7 @@ def initialize_dataframes(fw_client, reader_group):
 
     # Initialize destination projects dataframe
     # for reader_proj in fw_client.projects.find(f'group={reader_group.id}'):
-    for reader_proj in fw_client.projects.find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
+    for reader_proj in fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
         # Valid roles for readers are "read-write" and "read-only"
@@ -387,7 +387,8 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     # Ensure a valid ohif_config.json file is present for the master project
     confirm_or_create_ohif_config(src_project)
 
-    src_sessions = src_project.sessions()
+    #src_sessions = src_project.sessions()
+    src_sessions = fw_client.sessions.iter_find(f"project={src_project.id}")
 
     # Keep track of all the exported and created data
     # On Failure, remove contents of created_data from instance.
@@ -409,16 +410,6 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         fw_client, reader_group
     )
 
-    # Todo: fix this damn divide by zero error
-    if len(src_sessions) % dest_projects_df.shape[0] != 0:
-        log.warning(
-            "The number of sessions/cases (%i) in this batch is not divisible by the "
-            "number of Readers (%i). This will result in an uneven distribution of "
-            "exported sessions across the readers.",
-            len(src_sessions),
-            dest_projects_df.shape[0],
-        )
-
     # If the dataframe for destination projects is empty, raise an error.
     if dest_projects_df.shape[0] == 0:
         raise NoReaderProjectsError(
@@ -426,8 +417,10 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
             "Please run `assign-readers` with valid configuration first."
         )
 
+    nses = 0
     # for each session in the sessions found
     for src_session in src_sessions:
+        nses += 1
         # Reload to capture all metadata
         src_session = src_session.reload()
         session_features = set_session_features(src_session, case_coverage)
@@ -545,6 +538,16 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         project_features["case_states"].append(project_session_attributes)
 
     src_project.update_info({"project_features": project_features})
+
+    # Todo: fix this damn divide by zero error
+    if nses % dest_projects_df.shape[0] != 0:
+        log.warning(
+            "The number of sessions/cases (%i) in this batch is not divisible by the "
+            "number of Readers (%i). This will result in an uneven distribution of "
+            "exported sessions across the readers.",
+            len(src_sessions),
+            dest_projects_df.shape[0],
+        )
 
     # Iterate through all of the readers and update their metadata:
     for indx in dest_projects_df.index:
