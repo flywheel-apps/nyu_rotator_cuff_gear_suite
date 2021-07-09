@@ -421,7 +421,7 @@ def instantiate_new_readers(fw_client, group, readers_df):
     #     for proj in group.projects()
     # ]
 
-    projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')
+    projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?',limit=50)
     project_readers = find_readers_in_projects(projects, reader_roles)
                 
     # If the readers email (from the dataframe) is not in the project readers list,
@@ -466,7 +466,8 @@ def create_or_update_reader_projects(
     """
 
     # Generate list of all projects in this group
-    group_projects = fw_client.projects.find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?')
+    group_projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?', limit=50)
+    group_projects = list(group_projects)
 
     # Keep track of the created containers, in case of "rollback"
     created_data = []
@@ -527,7 +528,7 @@ def create_or_update_reader_projects(
 
 def get_reader_number(fw_client, group_id):
 
-    projects = fw_client.projects.find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?')
+    projects = fw_client.projects.iter_find(f'group={group_id},label=~Reader [0-9][0-9]?[0-9]?', limit=50)
     numbers = [int(p.label.split('Reader ')[-1]) for p in projects]
     number = max(numbers)+1
     return number
