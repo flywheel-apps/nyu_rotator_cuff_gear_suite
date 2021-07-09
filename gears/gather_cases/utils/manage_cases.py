@@ -832,7 +832,7 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
         else {"case_coverage": 3, "case_states": []}
     )
 
-    src_sessions = source_project.sessions()
+
 
     # Create a DataFrame to represent the states of each session and assignments
     source_sessions_df = pd.DataFrame(
@@ -852,6 +852,8 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
 
     # Create a DataFrame to record the state of each assessment by a reader
     case_assessment_df = pd.DataFrame(columns=CASE_ASSESSMENT_REC.keys())
+
+    src_sessions = fw_client.sessions.iter_find(f'project={source_projec.id}', limit=100)
 
     # for each session found
     for session in src_sessions:
@@ -965,6 +967,7 @@ def generate_summary_report_old(fw_client, case_assessment_df):
         # because I believe this is the most certain way to ensure that we are looking
         # at the correct reader study.  This also provides a quick way to match reader
         # names to their studies.
+
         reader_project = fw_client.get_project(project_id)
         project_features = reader_project.info.get("project_features", {})
         max_cases = project_features.get("max_cases", "NA")
