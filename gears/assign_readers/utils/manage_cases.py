@@ -568,6 +568,7 @@ def create_or_update_reader_projects(
         new_project, created_container = create_project(
             fw_client, project_label, group, reader, project_info
         )
+
         if ohif_config_path and os.path.exists(ohif_config_path):
             new_project.upload_file(ohif_config_path)
 
