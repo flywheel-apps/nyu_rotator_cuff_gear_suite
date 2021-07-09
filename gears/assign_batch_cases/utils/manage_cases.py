@@ -288,6 +288,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
     log.info(f"checking for reader {reader_id} in group {group_id}")
     group_projects = fw_client.projects.iter_find(f'group={group_id}', limit=50)
 
+
     proj_roles = [
         role.id
         for role in fw_client.get_all_roles()
@@ -384,6 +385,7 @@ def initialize_dataframes(fw_client, reader_group):
     # Initialize destination projects dataframe
     #for reader_proj in fw_client.projects.find(f'group="{reader_group.id}"'):
     for reader_proj in fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
+
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
         # Valid roles for readers are "read-write" and "read-only"

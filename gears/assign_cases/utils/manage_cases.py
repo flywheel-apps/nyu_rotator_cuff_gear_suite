@@ -256,6 +256,7 @@ def initialize_dataframes(fw_client, reader_group):
     # Initialize destination projects dataframe
     # for reader_proj in fw_client.projects.find(f'group={reader_group.id}'):
     for reader_proj in fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
+
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
         # Valid roles for readers are "read-write" and "read-only"
@@ -410,6 +411,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         fw_client, reader_group
     )
 
+
     # If the dataframe for destination projects is empty, raise an error.
     if dest_projects_df.shape[0] == 0:
         raise NoReaderProjectsError(
@@ -553,10 +555,12 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     for indx in dest_projects_df.index:
         project_id = dest_projects_df.loc[indx, "id"]
         reader_proj = fw_client.get(project_id)
+        reader_proj_features = reader_proj.info.get('project_features')
         project_info = {
             "project_features": {
                 "assignments": dest_projects_df.loc[indx, "assignments"],
                 "max_cases": dest_projects_df.loc[indx, "max_cases"],
+                "reader": reader_proj_features['reader']
             }
         }
         reader_proj.update_info(project_info)
