@@ -267,7 +267,8 @@ def initialize_dataframes(fw_client, reader_group):
     )
 
     # Initialize destination projects dataframe
-    for reader_proj in fw_client.projects.find(f'group="{reader_group.id}"'):
+    # This probably doesn't need a limit since projects aren't going to be in the 1000's
+    for reader_proj in fw_client.projects.iter_find(f'group="{reader_group.id}"'):
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
         # Valid roles for readers are "read-write" and "read-only"
