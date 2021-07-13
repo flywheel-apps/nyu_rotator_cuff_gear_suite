@@ -76,7 +76,7 @@ def define_export(fw_client, container, dest_project):
 
     source_project = fw_client.get(container.parents["project"])
 
-    if export_obj["container"] is "subject":
+    if export_obj["container"] == "subject":
         export_obj["name"] = container.code
     else:
         export_obj["name"] = container.label
@@ -85,14 +85,14 @@ def define_export(fw_client, container, dest_project):
     export_obj["origin_path"] = f"{source_project.group}/{source_project.label}"
     export_obj["export_path"] = f"{dest_project.group}/{dest_project.label}"
 
-    if export_obj["container"] is "subject":
+    if export_obj["container"] == "subject":
         export_obj["origin_path"] += f"/{container.code}"
         export_obj["export_path"] += f"/{container.code}"
-    elif export_obj["container"] is "session":
+    elif export_obj["container"] == "session":
         subject = fw_client.get(container.parents["subject"])
         export_obj["origin_path"] += f"/{subject.code}/{container.label}"
         export_obj["export_path"] += f"/{subject.code}/{container.label}"
-    elif export_obj["container"] is "acquisition":
+    elif export_obj["container"] == "acquisition":
         subject = fw_client.get(container.parents["subject"])
         session = fw_client.get(container.parents["session"])
         export_obj[

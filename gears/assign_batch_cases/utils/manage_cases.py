@@ -1,8 +1,9 @@
 import copy
 import logging
 from pathlib import Path
-
 import pandas as pd
+
+import flywheel
 
 from .container_operations import export_session, find_or_create_group
 
@@ -116,8 +117,7 @@ class MissingDataError(Exception):
 
 
 def set_session_features(session, case_coverage):
-    """
-    Gets or sets session features and updates later
+    """ Gets or sets session features and updates later
 
     Each session has a set of features: case_coverage, assignments, and assignment_count
     each assignment consists of {project_id:<uid>, session_id:<uid>, status:<str>}
@@ -138,7 +138,27 @@ def set_session_features(session, case_coverage):
     return session_features
 
 
-def find_readers_in_project_by_permission(project, reader_roles):
+def find_readers_in_project_by_permission(project, reader_roles = None):
+    """ finds a user with a specific set of permissions on a flywheel project
+
+    Given a project, this function looks for a user with the roles/permissions
+    specified in `reader_roles`, and returns those users.
+
+    Args:
+        project (flywheel.Project): a flywheel project to look for user roles on
+
+    Returns:
+        reader_ids (list): a list of
+    """
+
+    if not reader_roles:
+
+        reader_roles = [
+            role.id
+            for role in fw_client.get_all_roles()
+            if role.label in ["read-write", "read-only"]
+        ]
+
     reader_ids = []
     for perm in project.permissions:
         log.debug(f"Found permission: {perm}")
@@ -150,7 +170,22 @@ def find_readers_in_project_by_permission(project, reader_roles):
     return reader_ids
 
 
-def find_and_add_readers_by_perm(project, reader_roles):
+def find_and_add_readers_by_perm(project, reader_roles=None):
+    """ Finds a user with the correct flywheel roles/permissions on a given
+
+    project, and adds that user ID to the projects metadata:
+    project.info.project_features.reader.id
+
+    Any user that has the roles specified in reader_roles is considered a reader
+
+    Args:
+        project (flywheel.Project): a flywheel project to find the reader on
+        reader_roles (list): a list of valid reader roles.
+
+    Returns:
+        pf_reader (str): the flywheel ID of the reader.
+
+    """
     info = project.info
     proj_readers = find_readers_in_project_by_permission(project, reader_roles)
 
@@ -169,19 +204,32 @@ def find_and_add_readers_by_perm(project, reader_roles):
     return pf_reader
 
 
-def find_readers_in_projects(projects, reader_roles):
-    """
+def find_readers_in_projects(projects, reader_roles = None):
+    """ Finds the reader ids on a set of projects
+
+    Kind of an "interem" function...the old way of doing things was to always
+    check the project permissions and find the one user with "read/write"
+    access, and that was assumed to be the reader for that project.  But this
+    seemed kind of awkward and user-unfriendly.  The NEW way is that on
+    assignment, the reader id is stored it the project metadata under:
+    project.info.project_features.reader.id
+
+    SO this function looks there for a reader ID.  If it's running on an OLD
+    Blind reader deployment, it won't find any value there, so it will call
+    the "find and add reader by perm" function, which does what I described
+    above, BUT also generates that metadata field and populateds it with
+    whichever reader ID it's found with the read/write permission.
 
     Args:
-        projects:
-        reader_roles:
+        projects (list): a list of flywheel projects to get ID's from
+        reader_roles (list): a list of flywheel permissions that a reader can have
 
     Returns:
         reader_ids: (list) a list of reader id's (email addresses)
 
     """
 
-    if not isinstance(projects, list):
+    if isinstance(projects, flywheel.Project):
         projects = [projects]
 
     reader_ids = []
@@ -204,8 +252,35 @@ def find_readers_in_projects(projects, reader_roles):
         if pf_reader is not None:
             reader_ids.append(pf_reader)
 
+    return reader_ids
 
-def find_reader_project_from_id(projects, reader_id, reader_roles):
+
+def find_reader_project_from_id(projects, reader_id, reader_roles = None):
+    """ finds a reader's project given a reader ID.
+
+    Given a flywheel user id, find the project that they are a reader on.
+
+    This has legacy functionality.  Ideally reader projects have the reader id
+    stored in the metadata key:
+
+    `project.info.project_features.reader.id`
+
+    But if that's not there, we have to use the legacy method of finding the project,
+    based on role.  If we find it that way, populate the
+    `project.info.project_features.reader.id` metadata key
+
+    Args:
+        projects (list): a list of flywheel projects to search through for the reader
+        reader_id (string): the email of the reader to locate
+        reader_roles (list): a list of flywheel roles that are intended for readers,
+            usually read/write and read only
+
+    Returns:
+        reader_project (flywheel.Project): the project that the reader specified in
+            `reader_id` is assigned to
+
+    """
+
     reader_project = []
 
     for proj in projects:
@@ -222,7 +297,9 @@ def find_reader_project_from_id(projects, reader_id, reader_roles):
         log.warning(f"No projects found for reader {reader_id}")
         reader_project = [None]
 
-    return reader_project[0]
+    reader_project = reader_project[0]
+
+    return reader_project
 
 
 
@@ -272,7 +349,22 @@ def set_project_session_attributes(session_features):
 
 def check_valid_reader(fw_client, reader_id, group_id):
     """
-    Checks for the existing reader project for indicated reader_id.
+    Checks if a reader has a project created for them and returns it.
+
+    This is a very inefficient process since it calls all the projects in the reader group
+    every time.
+
+    TODO: revamp this gear to store all valid reader projects ahead of time and pass it in here
+    It could be something like:
+
+
+    .. code-block:: python
+
+        group_projects = list(fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?", limit = 50))
+        group_projects = [p.reload() for p in group_projects]
+        matching_id = [p for p in group_projects if p.info.project_features.reader.id == reader_id]
+
+
 
     Args:
         fw_client (flywheel.Client): Flywheel instance client for api calls.
@@ -285,72 +377,24 @@ def check_valid_reader(fw_client, reader_id, group_id):
     Returns:
         str: Returns reader's project id on success, `None` on failure
     """
+
+    # first get all the projects in the reader group
     log.info(f"checking for reader {reader_id} in group {group_id}")
-    group_projects = fw_client.projects.iter_find(f'group={group_id}', limit=50)
+    group_projects = list(fw_client.projects.iter_find(f"group={group_id},label=~Reader [0-9][0-9]?[0-9]?", limit=50))
 
-
-    proj_roles = [
-        role.id
-        for role in fw_client.get_all_roles()
-        if role.label in ["read-write", "read-only"]
-    ]
-    log.debug(proj_roles)
-    # Below is the "original" code, which was modified to the code immediately below it.
-    # List comprehension is faster, but I have expanded it for better logging, AND also
-    # there was a problem with the new flywheel permissions that caused an error with 
-    # the old code.  I am leaving it in for now in case any weird problems arise in the
-    # future, so we can reference the "original" code quickly in case I missed something
-    # 2021-05-18
-
-
-    # valid_reader_ids = [
-    #     [
-    #         perm.id
-    #         for perm in proj.permissions
-    #         if set(perm.role_ids).intersection(proj_roles)
-    #     ][0]
-    #     for proj in group_projects
-    # ]
-
-
-
-    valid_reader_ids = find_readers_in_projects(group_projects, proj_roles)
-    # for proj in group_projects:
-    #     proj = proj.reload()
-    #     log.debug(f"searching for permissions in {proj.label}")
-    #     for perm in proj.permissions:
-    #         log.debug(f"Found permission: {perm}")
-    #         role_match = set(perm.role_ids).intersection(proj_roles)
-    #         log.debug(f"roles match {role_match}")
-    #         if role_match:
-    #             valid_reader_ids.append(perm.id)
+    valid_reader_ids = find_readers_in_projects(group_projects)
 
     log.debug('Valid reader ids')
     log.debug(valid_reader_ids)
 
     reader_project = None
 
-    # if reader_id in valid_reader_ids:
-    #     log.debug('ID found in valid readers')
-    #     reader_project = [
-    #         proj
-    #         for proj in group_projects
-    #         if reader_id
-    #         in [
-    #             perm.id
-    #             for perm in proj.permissions
-    #             if set(perm.role_ids).intersection(proj_roles)
-    #         ]
-    #     ][0]
-
-
     if reader_id in valid_reader_ids:
         log.debug('ID found in valid readers')
-        reader_project = find_reader_project_from_id(projects, reader_id, reader_roles)
+        reader_project = find_reader_project_from_id(group_projects, reader_id)
+        #if reader_id in [perm.id for perm in proj.permissions if set(perm.role_ids).intersection(proj_roles)]][0]
 
-
-            #if reader_id in [perm.id for perm in proj.permissions if set(perm.role_ids).intersection(proj_roles)]][0]
-
+    log.debug(f"Found Reader Project {reader_project.label} matching reader id {reader_id}")
 
     return reader_project
 
@@ -384,34 +428,13 @@ def initialize_dataframes(fw_client, reader_group):
 
     # Initialize destination projects dataframe
     #for reader_proj in fw_client.projects.find(f'group="{reader_group.id}"'):
+    nread = 0
     for reader_proj in fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
 
         reader_proj = reader_proj.reload()
         project_features = reader_proj.info["project_features"]
-        # Valid roles for readers are "read-write" and "read-only"
 
-        proj_roles = [
-            role.id
-            for role in fw_client.get_all_roles()
-            if role.label in ["read-write", "read-only"]
-        ]
-
-
-        
-        # Below is the "original" code, which was modified to the code immediately below it.
-        # List comprehension is faster, but I have expanded it for better logging, AND also
-        # there was a problem with the new flywheel permissions that caused an error with 
-        # the old code.  I am leaving it in for now in case any weird problems arise in the
-        # future, so we can reference the "original" code quickly in case I missed something
-        # 2021-05-18
-
-        # reader_id = [
-        #     perm.id
-        #     for perm in reader_proj.permissions
-        #     if set(perm.role_ids).intersection(proj_roles)
-        # ][0]
-        
-        reader_id = find_readers_in_projects(reader_proj, proj_roles)
+        reader_id = find_readers_in_projects(reader_proj)
 
         # for perm in reader_proj.permissions:
         #     if set(perm.role_ids).intersection(proj_roles):
@@ -419,14 +442,15 @@ def initialize_dataframes(fw_client, reader_group):
                 
         
         # Fill the dataframe with project data.
-        dest_projects_df.loc[dest_projects_df.shape[0] + 1] = [
+        dest_projects_df.loc[nread] = [
             reader_proj.id,
             reader_proj.label,
-            reader_id,
+            reader_id[0],
             project_features["assignments"],
             project_features["max_cases"],
             len(reader_proj.sessions()),
         ]
+        nread+=1
 
     # This dataframe keeps track of each reader project and session each session was
     # exported to.
@@ -464,6 +488,8 @@ def check_valid_case_assignment(
     """
     Checks the validity of a case/reader assignment.
 
+    This is pretty inefficient.
+
     Args:
         fw_client (flywheel.Client): Active Flywheel client object
         session_id (str): The id of the session to assign to a `reader_email`.
@@ -477,6 +503,8 @@ def check_valid_case_assignment(
     """
 
     # Check for valid session
+    log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
+
     src_session = fw_client.sessions.find_first(f"_id={session_id}")
     if not src_session:
         message = (
@@ -487,9 +515,11 @@ def check_valid_case_assignment(
     else:
         src_session = src_session.reload()
 
-    # Check for the forbidden group
+    log.debug('found source session')
+
+    # Check for the forbidden group.  This is bad and wrong and we should get rid of it
     # TODO: Derive a test...tricky... because of created projects and sessions.
-    if src_session.parents["group"] is reader_group_id:
+    if src_session.parents["project"] is reader_group_id:
         message = (
             f"Session with id ({session_id}) belongs to a reader project.\n"
             f"Please correctly identify the session in a Master Project and try again."
@@ -498,6 +528,7 @@ def check_valid_case_assignment(
 
     # Check for valid Reader
     reader_proj = check_valid_reader(fw_client, reader_email, reader_group_id)
+
     if not reader_proj:
         message = (
             f"The reader, {reader_email}, has not been established. "
@@ -603,6 +634,7 @@ def distribute_batch_to_readers(
     batch_df = pd.read_csv(batch_csv_path)
 
     # check for required columns:
+    # TODO: I don't think session label is actually used.  Invistigate and remove.
     req_columns = ["session_id", "session_label", "reader_email"]
     if not all([(c in batch_df.columns) for c in req_columns]):
         joined_cols = ", ".join(req_columns)
@@ -628,11 +660,11 @@ def distribute_batch_to_readers(
         else:
             session_features = {}
 
-
+        log.debug("dest project dataframe:")
+        log.debug(dest_projects_df)
         # Locate Reader Project
         if reader_email in dest_projects_df.reader_id.values:
-            project_id = dest_projects_df.loc[
-                dest_projects_df['reader_id'] == reader_email, 'id'][0]
+
             
             # Leaving this in until above is fully vetted:
             # OLD WAY:
@@ -640,24 +672,30 @@ def distribute_batch_to_readers(
             # project_id = dest_projects_df.id[indx]
             # reader_proj = fw_client.get(project_id).reload()
             # force push
-            
+
+            indx = dest_projects_df[dest_projects_df['reader_id'] == reader_email].index[0]
+            project_id = dest_projects_df.loc[indx, "id"]
+            reader_proj = fw_client.get(project_id).reload()
+            reader_row = dest_projects_df.loc[indx]
+
+
+
+            valid, message = check_valid_case_assignment(
+                fw_client,
+                session_id,
+                reader_email,
+                reader_group_id,
+                reader_row,
+                case_coverage,
+            )
         # This will be caught as a non-valid reader,
         # padding these variables to pass then to validation function.
         else:
-            indx = dest_projects_df.index[0]
-            project_id = dest_projects_df.id[indx]
+            project_id = None
             reader_proj = None
+            valid = False
+            message = f"reader {reader_email} does not exist"
 
-        reader_row = dest_projects_df.loc[indx, :]
-
-        valid, message = check_valid_case_assignment(
-            fw_client,
-            session_id,
-            reader_email,
-            reader_group_id,
-            reader_row,
-            case_coverage,
-        )
 
         if not valid:
             batch_df.loc[i, "passed"] = False

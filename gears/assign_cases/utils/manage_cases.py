@@ -527,12 +527,14 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         project_session_attributes = set_project_session_attributes(session_features)
 
         # Check to see if the case is already present in the project_features
+        log.debug(f'looking for case {case["id"]}')
         case = [
             case
             for case in project_features["case_states"]
             if case["id"] == session_features["id"]
         ]
         if case:
+            log.debug('found!')
             index = project_features["case_states"].index(case[0])
             project_features["case_states"].pop(index)
 
@@ -547,11 +549,12 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
             "The number of sessions/cases (%i) in this batch is not divisible by the "
             "number of Readers (%i). This will result in an uneven distribution of "
             "exported sessions across the readers.",
-            len(src_sessions),
+            nses,
             dest_projects_df.shape[0],
         )
 
     # Iterate through all of the readers and update their metadata:
+    log.debug('updating metadata for readers.')
     for indx in dest_projects_df.index:
         project_id = dest_projects_df.loc[indx, "id"]
         reader_proj = fw_client.get(project_id)

@@ -191,7 +191,25 @@ def define_reader_csv(context):
         )
 
 
-def find_readers_in_project_by_permission(project, reader_roles):
+def find_readers_in_project_by_permission(project, reader_roles=None):
+    """ finds a user with a specific set of permissions on a flywheel project
+
+    Given a project, this function looks for a user with the roles/permissions
+    specified in `reader_roles`, and returns those users.
+
+    Args:
+        project (flywheel.Project): a flywheel project to look for user roles on
+
+    Returns:
+        reader_ids (list): a list of
+    """
+
+    if not reader_roles:
+        reader_roles = [
+            role.id
+            for role in fw_client.get_all_roles()
+            if role.label in ["read-write", "read-only"]
+        ]
 
     reader_ids = []
     for perm in project.permissions:
@@ -203,8 +221,23 @@ def find_readers_in_project_by_permission(project, reader_roles):
 
     return reader_ids
 
-def find_and_add_readers_by_perm(project, reader_roles):
 
+def find_and_add_readers_by_perm(project, reader_roles=None):
+    """ Finds a user with the correct flywheel roles/permissions on a given
+
+    project, and adds that user ID to the projects metadata:
+    project.info.project_features.reader.id
+
+    Any user that has the roles specified in reader_roles is considered a reader
+
+    Args:
+        project (flywheel.Project): a flywheel project to find the reader on
+        reader_roles (list): a list of valid reader roles.
+
+    Returns:
+        pf_reader (str): the flywheel ID of the reader.
+
+    """
     info = project.info
     proj_readers = find_readers_in_project_by_permission(project, reader_roles)
 
@@ -223,19 +256,32 @@ def find_and_add_readers_by_perm(project, reader_roles):
     return pf_reader
 
 
-def find_readers_in_projects(projects, reader_roles):
-    """
+def find_readers_in_projects(projects, reader_roles=None):
+    """ Finds the reader ids on a set of projects
+
+    Kind of an "interem" function...the old way of doing things was to always
+    check the project permissions and find the one user with "read/write"
+    access, and that was assumed to be the reader for that project.  But this
+    seemed kind of awkward and user-unfriendly.  The NEW way is that on
+    assignment, the reader id is stored it the project metadata under:
+    project.info.project_features.reader.id
+
+    SO this function looks there for a reader ID.  If it's running on an OLD
+    Blind reader deployment, it won't find any value there, so it will call
+    the "find and add reader by perm" function, which does what I described
+    above, BUT also generates that metadata field and populateds it with
+    whichever reader ID it's found with the read/write permission.
 
     Args:
-        projects:
-        reader_roles:
+        projects (list): a list of flywheel projects to get ID's from
+        reader_roles (list): a list of flywheel permissions that a reader can have
 
     Returns:
         reader_ids: (list) a list of reader id's (email addresses)
 
     """
 
-    if not isinstance(projects, list):
+    if isinstance(projects, flywheel.Project):
         projects = [projects]
 
     reader_ids = []
@@ -258,11 +304,34 @@ def find_readers_in_projects(projects, reader_roles):
         if pf_reader is not None:
             reader_ids.append(pf_reader)
 
-
     return reader_ids
 
 
-def find_reader_project_from_id(projects, reader_id, reader_roles):
+def find_reader_project_from_id(projects, reader_id, reader_roles=None):
+    """ finds a reader's project given a reader ID.
+
+    Given a flywheel user id, find the project that they are a reader on.
+
+    This has legacy functionality.  Ideally reader projects have the reader id
+    stored in the metadata key:
+
+    `project.info.project_features.reader.id`
+
+    But if that's not there, we have to use the legacy method of finding the project,
+    based on role.  If we find it that way, populate the
+    `project.info.project_features.reader.id` metadata key
+
+    Args:
+        projects (list): a list of flywheel projects to search through for the reader
+        reader_id (string): the email of the reader to locate
+        reader_roles (list): a list of flywheel roles that are intended for readers,
+            usually read/write and read only
+
+    Returns:
+        reader_project (flywheel.Project): the project that the reader specified in
+            `reader_id` is assigned to
+
+    """
 
     reader_project = []
 
@@ -280,7 +349,9 @@ def find_reader_project_from_id(projects, reader_id, reader_roles):
         log.warning(f"No projects found for reader {reader_id}")
         reader_project = [None]
 
-    return reader_project[0]
+    reader_project = reader_project[0]
+
+    return reader_project
 
 
 def update_reader_projects_metadata(fw_client, group_projects, readers_df):
@@ -301,32 +372,8 @@ def update_reader_projects_metadata(fw_client, group_projects, readers_df):
             "email", "first_name", "last_name", and "max_cases"
     """
 
-    # Valid roles for readers are "read-write" and "read-only"
-    proj_roles = [
-        role.id
-        for role in fw_client.get_all_roles()
-        if role.label in ["read-write", "read-only"]
-    ]
 
-
-                
-    # Below is the "original" code, which was modified to the code immediately below it.
-    # List comprehension is faster, but I have expanded it for better logging, AND also
-    # there was a problem with the new flywheel permissions that caused an error with 
-    # the old code.  I am leaving it in for now in case any weird problems arise in the
-    # future, so we can reference the "original" code quickly in case I missed something
-    # 2021-05-18
-                
-    # group_reader_ids = [
-    #     [
-    #         perm.id
-    #         for perm in proj.permissions
-    #         if set(perm.role_ids).intersection(proj_roles)
-    #     ][0]
-    #     for proj in group_projects
-    # ]
-
-    group_reader_ids = find_readers_in_projects(group_projects, proj_roles)
+    group_reader_ids = find_readers_in_projects(group_projects)
 
 
     for index in readers_df.index:
@@ -421,8 +468,9 @@ def instantiate_new_readers(fw_client, group, readers_df):
     #     for proj in group.projects()
     # ]
 
-    projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?',limit=50)
-
+    projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?', limit=50)
+    # Tested on imidex, iters uses pagination by default, this works when a simple finder would fail
+    projects = list(projects)
     project_readers = find_readers_in_projects(projects, reader_roles)
                 
     # If the readers email (from the dataframe) is not in the project readers list,
