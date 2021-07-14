@@ -8,12 +8,12 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_cases",
     "cite": "",
-    "version": "0.2.2",
+    "version": "0.3.0b",
     "custom": {
-        "docker-image": "flywheel/assign-cases:0.2.2",
+        "docker-image": "flywheel/assign-cases:0.3.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/assign-cases:0.2.2"
+            "image": "flywheel/assign-cases:0.3.0"
         }
     },
     "inputs": {
@@ -28,6 +28,12 @@
             "maximum": 4,
             "description": "The number of readers each case will be provided to.",
             "type": "integer"
+        },
+
+        "reader_group_id": {
+            "optional": true,
+            "description": "The flywheel ID of the readers group (default is same group as source project)",
+            "type": "string"
         }
     },
     "command": "/flywheel/v0/run.py"

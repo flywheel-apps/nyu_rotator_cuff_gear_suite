@@ -30,7 +30,10 @@ def main(context):
         destination_id = context.destination["id"]
         analysis = fw_client.get(destination_id)
         source_project = fw_client.get(analysis.parents["project"])
-        reader_group_id = source_project.group
+        reader_group_id = context.config.get("reader_group_id")
+        source_group_id = source_project.group
+        if reader_group_id is None:
+            reader_group_id = source_group_id
 
 
         # TODO: Verify that this isn't RUSTLING ANYTONES JIMMIES.

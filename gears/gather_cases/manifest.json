@@ -8,12 +8,13 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/gather_cases",
     "cite": "",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "custom": {
-        "docker-image": "flywheel/gather-cases:0.2.2",
+        "docker-image": "flywheel/gather-cases:0.3.0",
         "gear-builder": {
             "category": "analysis",
-            "image": "flywheel/gather-cases:0.2.2"
+            "image": "flywheel/gather-cases:0.3.0"
+
         }
     },
     "inputs": {
@@ -21,7 +22,9 @@
             "base": "api-key"
         }
     },
-    
+    "environment": {
+        "FLYWHEEL_SDK_REQUEST_TIMEOUT": "600"
+    },
     "config": {
         "Display Reads In Main Project": {
             "default": false,
