@@ -304,6 +304,7 @@ def find_readers_in_projects(projects, reader_roles=None):
         if pf_reader is not None:
             reader_ids.append(pf_reader)
 
+
     return reader_ids
 
 
