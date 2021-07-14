@@ -421,9 +421,9 @@ def instantiate_new_readers(fw_client, group, readers_df):
     #     for proj in group.projects()
     # ]
 
-    projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?',limit=50)
+    projects = fw_client.projects.iter_find(f'group={group.id},label=~Reader [0-9][0-9]?[0-9]?', limit=50)
 
-    project_readers = find_readers_in_projects(projects, reader_roles)
+    project_readers = find_readers_in_projects(list(projects), reader_roles)
                 
     # If the readers email (from the dataframe) is not in the project readers list,
     # We will initiate it.
