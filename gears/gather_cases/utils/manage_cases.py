@@ -518,11 +518,9 @@ def copy_rois_to_source(fw_client, session):
 
 def fill_session_attributes(fw_client, project_features, session):
     """
-    Acquire data from a case to populate the output summary
-
-    Sorry Josh, that docstring is shit.  This function updates the metadata on the
+    This function updates the metadata on the
     source session to include any completed reads/measurements from the assigned cases.
-    These are added to the "session_features" meatadata namespace in the source session.
+    These are added to the "session_features" metadata namespace in the source session.
 
     Args:
         fw_client (flywheel.Client): The active flywheel client
@@ -891,10 +889,10 @@ def generate_summary_report(fw_client, case_assessment_df):
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
-        case_assessment_df (pandas.DataFrame):
+        case_assessment_df (pandas.DataFrame): pandas.DataFrame reporting on the assessment status from each reader
 
     Returns:
-
+        new_df (pandas.DataFrame): A slimmed down version of case_assessment_df designed for readability.
     """
 
     columns = [
@@ -928,10 +926,10 @@ def generate_summary_report_old(fw_client, case_assessment_df):
     Args:
         fw_client (flywheel.Client): An instantiated Flywheel Client to a host instance
         source_project (flywheel.Project): The source project for all sessions
-        case_assessment_df (pandas.DataFrame):
+        case_assessment_df (pandas.DataFrame): pandas.DataFrame reporting on the assessment status from each reader
 
     Returns:
-
+        progress_report (pandas.DataFrame): a report on the progress of each reader (# scans complete/total assigned)
     """
 
     # Initialize a dataframe that has one row for each reader
