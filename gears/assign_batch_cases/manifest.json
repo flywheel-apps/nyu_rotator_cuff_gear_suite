@@ -43,6 +43,11 @@
             "maximum": 5,
             "description": "The number of readers each case will be provided to.",
             "type": "integer"
+        },
+        "dry_run": {
+            "default": false,
+            "description": "Dry run will report on which sessions would be assigned to which readers, but will not assign any",
+            "type": "boolean"
         }
     },
     "environment": {

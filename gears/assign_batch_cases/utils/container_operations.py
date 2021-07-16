@@ -155,7 +155,7 @@ def _cleanup(fw_client, created_data):
             fw_client.delete_subject(s["id"])
 
 
-def find_or_create_group(fw_client, group_id, group_label):
+def find_or_create_group(fw_client, group_id, group_label, dry_run):
     """
     return an existing group or return a created group with group_id and group_label
 
@@ -172,13 +172,17 @@ def find_or_create_group(fw_client, group_id, group_label):
     if len(found_groups) > 0:
         return found_groups[0].reload(), []
 
-    group_id = fw_client.add_group(flywheel.Group(group_id, group_label))
+    if dry_run:
+        log.warning("Reader groups/projects cannot be created during dry-run")
+        raise Exception('Dry run cannot create new groups/projects')
 
-    group = fw_client.groups.find_first(f'_id="{group_id}"')
+    else:
+        group_id = fw_client.add_group(flywheel.Group(group_id, group_label))
+        group = fw_client.groups.find_first(f'_id="{group_id}"')
+        group = group.reload()
+        created_container = define_created(group)
 
-    created_container = define_created(group)
-
-    return group.reload(), [created_container]
+    return group, [created_container]
 
 
 def create_project(fw_client, project_label, group, user_id, project_info={}):
@@ -216,7 +220,7 @@ def create_project(fw_client, project_label, group, user_id, project_info={}):
     return new_project, created_container
 
 
-def export_or_find_subject(fw_client, source_subject, dest_project):
+def export_or_find_subject(fw_client, source_subject, dest_project, dry_run):
     """
     Exports source_subject to dest_project.
 
@@ -253,6 +257,7 @@ def export_or_find_subject(fw_client, source_subject, dest_project):
         # Attempt to create the subject. This may fail as a batch-run could
         # result in the subject having been created already, thus we try/except
         # and look for the subject again.
+
         try:
             dest_subject = dest_project.add_subject(subject_metadata)
             log.info("Created %s in %s", dest_subject.code, dest_project.label)
@@ -290,7 +295,7 @@ def export_or_find_subject(fw_client, source_subject, dest_project):
     return dest_subject, subj_export, created_container
 
 
-def export_session(fw_client, source_session, dest_project, export_info=False):
+def export_session(fw_client, source_session, dest_project, export_info=False, dry_run = False):
 
     """
     Export a session (source_session) to project (dest_project).
@@ -320,7 +325,7 @@ def export_session(fw_client, source_session, dest_project, export_info=False):
         # use that subject
 
         dest_subject, subj_export, created_container = export_or_find_subject(
-            fw_client, source_subject, dest_project
+            fw_client, source_subject, dest_project, dry_run
         )
 
         exported_data.append(subj_export)
