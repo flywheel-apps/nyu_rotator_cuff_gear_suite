@@ -575,7 +575,7 @@ def check_valid_case_assignment(
 
 
 def distribute_batch_to_readers(
-    fw_client, source_project, reader_group_id, case_coverage, batch_csv_path
+    fw_client, source_project, reader_group_id, case_coverage, batch_csv_path, dry_run
 ):
     """
     Distribute batch of cases (sessions) from a source project to reader projects.
@@ -591,6 +591,7 @@ def distribute_batch_to_readers(
         reader_group_id (str): The Flywheel container id for the group in question
         case_coverage (int): The default number of readers assigned to each session
         batch_csv_path (str): Path to batch csv with case-reader assignments.
+        dry_run (bool): If true, do not make any assignments, just generate report on what would be assigned.
     Returns:
         tuple: Pandas DataFrames recording source and destination for
             each session exported.
@@ -614,8 +615,8 @@ def distribute_batch_to_readers(
     # Find or create reader group
     reader_group_label = fw_client.get_group(reader_group_id).label
     reader_group, _created_data = find_or_create_group(
-        fw_client, reader_group_id, reader_group_label
-    )
+            fw_client, reader_group_id, reader_group_label, dry_run
+        )
     created_data.extend(_created_data)
 
     # Initialize dataframes used to select sessions and readers without replacement
@@ -703,11 +704,14 @@ def distribute_batch_to_readers(
             log.error(message)
             continue
 
+        if dry_run:
+            continue
+
         # With checks complete, assign indicated case to selected reader
         try:
             # export the session to the reader project
             dest_session, _exported_data, _created_data = export_session(
-                fw_client, src_session, fw_client.get(project_id)
+                fw_client, src_session, fw_client.get(project_id), dry_run
             )
 
             exported_data.extend(_exported_data)

@@ -255,6 +255,7 @@ def initialize_dataframes(fw_client, reader_group):
 
     # Initialize destination projects dataframe
     # for reader_proj in fw_client.projects.find(f'group={reader_group.id}'):
+    log.debug(f'looking for readers with query "group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"')
     for reader_proj in fw_client.projects.iter_find(f"group={reader_group.id},label=~Reader [0-9][0-9]?[0-9]?"):
 
         reader_proj = reader_proj.reload()
