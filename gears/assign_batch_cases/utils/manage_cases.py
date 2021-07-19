@@ -139,6 +139,7 @@ def set_session_features(session, case_coverage):
 
 
 def find_readers_in_project_by_permission(project, reader_roles):
+    log.debug('Looking for reader by permission')
     reader_ids = []
     for perm in project.permissions:
         log.debug(f"Found permission: {perm}")
@@ -147,6 +148,8 @@ def find_readers_in_project_by_permission(project, reader_roles):
             log.debug(f"roles match {role_match}")
             reader_ids.append(perm.id)
 
+    log.debug(f'found: {reader_ids}')
+
     return reader_ids
 
 
@@ -154,6 +157,7 @@ def find_and_add_readers_by_perm(project, reader_roles):
     info = project.info
     proj_readers = find_readers_in_project_by_permission(project, reader_roles)
 
+    log.debug('adding reader id to project features')
     if len(proj_readers) > 1:
         log.warning("more than one possible reader found.  assuming first")
 
@@ -203,6 +207,8 @@ def find_readers_in_projects(projects, reader_roles):
 
         if pf_reader is not None:
             reader_ids.append(pf_reader)
+
+    return reader_ids
 
 
 def find_reader_project_from_id(projects, reader_id, reader_roles):
@@ -286,8 +292,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
         str: Returns reader's project id on success, `None` on failure
     """
     log.info(f"checking for reader {reader_id} in group {group_id}")
-    group_projects = fw_client.projects.iter_find(f'group={group_id}', limit=50)
-
+    group_projects = list(fw_client.projects.iter_find(f"group={group_id},label=~Reader [0-9][0-9]?[0-9]?", limit=50))
 
     proj_roles = [
         role.id
@@ -325,7 +330,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
     #         if role_match:
     #             valid_reader_ids.append(perm.id)
 
-    log.debug('Valid reader ids')
+    log.debug('Valid reader ids:')
     log.debug(valid_reader_ids)
 
     reader_project = None
