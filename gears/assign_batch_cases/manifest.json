@@ -8,7 +8,7 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_batch_cases",
     "cite": "",
-    "version": "0.4.0f",
+    "version": "0.3.2d",
     "custom": {
         "docker-image": "flywheel/assign-batch-cases:0.3.0",
         "gear-builder": {

@@ -167,6 +167,8 @@ def find_readers_in_project_by_permission(project, reader_roles = None):
             log.debug(f"roles match {role_match}")
             reader_ids.append(perm.id)
 
+    log.debug(f'found: {reader_ids}')
+
     return reader_ids
 
 
@@ -189,6 +191,7 @@ def find_and_add_readers_by_perm(project, reader_roles=None):
     info = project.info
     proj_readers = find_readers_in_project_by_permission(project, reader_roles)
 
+    log.debug('adding reader id to project features')
     if len(proj_readers) > 1:
         log.warning("more than one possible reader found.  assuming first")
 
@@ -384,7 +387,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
 
     valid_reader_ids = find_readers_in_projects(group_projects)
 
-    log.debug('Valid reader ids')
+    log.debug('Valid reader ids:')
     log.debug(valid_reader_ids)
 
     reader_project = None
@@ -635,7 +638,6 @@ def distribute_batch_to_readers(
     batch_df = pd.read_csv(batch_csv_path)
 
     # check for required columns:
-    # TODO: I don't think session label is actually used.  Invistigate and remove.
     req_columns = ["session_id", "session_label", "reader_email"]
     if not all([(c in batch_df.columns) for c in req_columns]):
         joined_cols = ", ".join(req_columns)
