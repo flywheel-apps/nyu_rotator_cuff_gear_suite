@@ -505,6 +505,8 @@ def check_valid_case_assignment(
         tuple: (valid, message) indicating if valid and a message if not.
     """
 
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n case_coverage:{case_coverage}")
+
     # Check for valid session
     log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
 

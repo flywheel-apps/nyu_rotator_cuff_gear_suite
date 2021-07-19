@@ -42,6 +42,9 @@ def main(context):
         reader_group_id = context.config.get("reader_group_id")
         dry_run = context.config.get("dry_run", False)
 
+        if dry_run:
+            log.info("DRY RUN: No data will be modified")
+
         source_group_id = source_project.group
         if reader_group_id is None:
             reader_group_id = source_group_id
