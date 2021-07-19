@@ -351,7 +351,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
 
     if reader_id in valid_reader_ids:
         log.debug('ID found in valid readers')
-        reader_project = find_reader_project_from_id(projects, reader_id, reader_roles)
+        reader_project = find_reader_project_from_id(group_projects, reader_id, proj_roles)
 
 
             #if reader_id in [perm.id for perm in proj.permissions if set(perm.role_ids).intersection(proj_roles)]][0]
@@ -480,6 +480,8 @@ def check_valid_case_assignment(
     Returns:
         tuple: (valid, message) indicating if valid and a message if not.
     """
+
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n case_coverage:{case_coverage}")
 
     # Check for valid session
     src_session = fw_client.sessions.find_first(f"_id={session_id}")
