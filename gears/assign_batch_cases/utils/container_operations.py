@@ -360,9 +360,11 @@ def export_session(fw_client, source_session, dest_project, export_info=False, d
 
         if created_container:
             created_data.append(created_container)
+
         ########################################################################
         # For each acquisition, create the export_acquisition, upload and modify
         # the files
+
         num_acq = len(source_session.acquisitions())
         log.info("EXPORTING %i ACQUISITIONS...", num_acq)
         acq_count = 0

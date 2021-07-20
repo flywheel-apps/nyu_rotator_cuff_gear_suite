@@ -579,6 +579,102 @@ def check_valid_case_assignment(
     return True, "All validation checks, passed."
 
 
+def dry_run_check_valid_case_assignment(
+    fw_client, session_id, reader_email, reader_group_id, reader_row, case_coverage
+):
+    """
+    Checks the validity of a case/reader assignment for dry run.
+
+    This is pretty inefficient.
+
+    Args:
+        fw_client (flywheel.Client): Active Flywheel client object
+        session_id (str): The id of the session to assign to a `reader_email`.
+        reader_email (str): The email of the reader to assign the `session_id` to.
+        reader_group_id (str): The `id` of the reader group to check for projects.
+        reader_row (pandas.Series): The dataframe row depicting a reader's assignments.
+        case_coverage (int): The maximum number of assignments for a session/case.
+
+    Returns:
+        tuple: (valid, message) indicating if valid and a message if not.
+    """
+
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n case_coverage:{case_coverage}")
+
+    # Check for valid session
+    log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
+
+    src_session = fw_client.sessions.find_first(f"_id={session_id}")
+    if not src_session:
+        message = (
+            f"Session with id ({session_id}) is not found within a Master Project. "
+            f"Proceeding without making this assignment to reader ({reader_email})."
+        )
+        return False, message
+    else:
+        src_session = src_session.reload()
+
+    log.debug('found source session')
+
+    # Check for the forbidden group.  This is bad and wrong and we should get rid of it
+    # TODO: Derive a test...tricky... because of created projects and sessions.
+    if src_session.parents["project"] is reader_group_id:
+        message = (
+            f"Session with id ({session_id}) belongs to a reader project.\n"
+            f"Please correctly identify the session in a Master Project and try again."
+        )
+        return False, message
+
+    # Check for valid Reader
+    reader_proj = check_valid_reader(fw_client, reader_email, reader_group_id)
+
+    if not reader_proj:
+        message = (
+            f"The reader, {reader_email}, has not been established. "
+            "Please run `assign-readers` to establish a project for this reader"
+        )
+        return False, message
+
+    # Check for the existence of the selected session in the reader project
+    reader_proj_features = reader_proj.info.get("project_features")
+    if reader_proj_features:
+        reader_assignments = reader_proj_features.get("assignments")
+    else:
+        reader_assignments = None
+    if reader_assignments and src_session.id in [
+        assnmt["source_session"] for assnmt in reader_assignments
+    ]:
+        message = (
+            f"Selected session ({src_session.label}) has already been assigned to "
+            f"reader ({reader_email})."
+        )
+        return False, message
+
+    # Check reader availability
+    if reader_row.num_assignments == reader_row.max_cases:
+        message = (
+            f"Cannot assign more than {reader_row.max_cases} cases to "
+            f"reader ({reader_email}). "
+            "Consider increasing max_cases for this reader "
+            "or choosing another reader."
+        )
+        return False, message
+
+    # Check session to ensure num_assignments < case_coverage
+    session_features = set_session_features(src_session, case_coverage)
+    if session_features["assigned_count"] == session_features["case_coverage"]:
+        message = (
+            f"Assigning this case ({src_session.label}) exceeds "
+            f"case_coverage ({session_features['case_coverage']}) for this case."
+            "Assignment will not proceed."
+        )
+        return False, message
+
+    return True, "All validation checks, passed."
+
+
+
+
 def distribute_batch_to_readers(
     fw_client, source_project, reader_group_id, case_coverage, batch_csv_path, dry_run
 ):
