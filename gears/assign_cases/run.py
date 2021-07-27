@@ -65,7 +65,8 @@ def main(context):
 
 if __name__ == "__main__":
     with GearToolkitContext() as gear_context:
-        gear_context.init_logging()
+        gear_context.init_logging('debug')
+        # gear_context.init_logging()
         exit_status = main(gear_context)
 
     log.info("exit_status is %s", exit_status)

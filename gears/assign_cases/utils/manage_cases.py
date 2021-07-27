@@ -317,10 +317,16 @@ def select_readers_without_replacement(session_features, dest_projects_df):
         session_features["assignments"]
     )
 
+    if avail_case_coverage == 0:
+        log.info("Maximum coverage already achieved. skipping")
+        return []
+
     # add it to case_coverage distinct readers (projects)
     readers_proj_assigned = [
         assignments["project_id"] for assignments in session_features["assignments"]
     ]
+
+
 
     df_temp = dest_projects_df[
         (dest_projects_df.num_assignments == np.min(dest_projects_df.num_assignments))
@@ -390,7 +396,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
     confirm_or_create_ohif_config(src_project)
 
     #src_sessions = src_project.sessions()
-    src_sessions = fw_client.sessions.iter_find(f"project={src_project.id}")
+    src_sessions = fw_client.sessions.iter_find(f"project={src_project.id}", limit=50)
 
     # Keep track of all the exported and created data
     # On Failure, remove contents of created_data from instance.
@@ -528,7 +534,7 @@ def distribute_cases_to_readers(fw_client, src_project, reader_group_id, case_co
         project_session_attributes = set_project_session_attributes(session_features)
 
         # Check to see if the case is already present in the project_features
-        log.debug(f'looking for case {case["id"]}')
+        log.debug(f'looking for case {session_features["id"]}')
         case = [
             case
             for case in project_features["case_states"]

@@ -579,8 +579,16 @@ def check_valid_case_assignment(
     return True, "All validation checks, passed."
 
 
-def dry_run_check_valid_case_assignment(
-    fw_client, session_id, reader_email, reader_group_id, reader_row, case_coverage
+def dryrun_make_session_df():
+
+    columns = ['session_id','case_coverage','assigned_count']
+    session_df = pd.DataFrame(columns=columns)
+    return session_df
+
+
+
+def dryrun_check_valid_case_assignment(
+    fw_client, session_id, reader_email, reader_group_id, reader_row, session_df
 ):
     """
     Checks the validity of a case/reader assignment for dry run.
@@ -599,7 +607,7 @@ def dry_run_check_valid_case_assignment(
         tuple: (valid, message) indicating if valid and a message if not.
     """
 
-    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n case_coverage:{case_coverage}")
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n")
 
     # Check for valid session
     log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
@@ -636,11 +644,9 @@ def dry_run_check_valid_case_assignment(
         return False, message
 
     # Check for the existence of the selected session in the reader project
-    reader_proj_features = reader_proj.info.get("project_features")
-    if reader_proj_features:
-        reader_assignments = reader_proj_features.get("assignments")
-    else:
-        reader_assignments = None
+
+    reader_assignments = reader_row.get('assignments',None)
+
     if reader_assignments and src_session.id in [
         assnmt["source_session"] for assnmt in reader_assignments
     ]:
@@ -661,7 +667,14 @@ def dry_run_check_valid_case_assignment(
         return False, message
 
     # Check session to ensure num_assignments < case_coverage
-    session_features = set_session_features(src_session, case_coverage)
+    if session_id not in session_df['session_id']:
+        session_features = src_session.info['session_features']
+        new_row = {'session_id':session_id,'case_coverage':session_features.get('case_coverage'), 'assigned_count':session_features.get('assigned_count')}
+        session_df = session_df.append(new_row, ignore_index=True)
+
+    ses_idx = session_df[session_df['session_id'] == session_id].index[0]
+
+    session_features = session_df.iloc[ses_idx]
     if session_features["assigned_count"] == session_features["case_coverage"]:
         message = (
             f"Assigning this case ({src_session.label}) exceeds "
@@ -670,7 +683,7 @@ def dry_run_check_valid_case_assignment(
         )
         return False, message
 
-    return True, "All validation checks, passed."
+    return True, ses_idx
 
 
 
@@ -748,6 +761,8 @@ def distribute_batch_to_readers(
     batch_df["passed"] = True
     batch_df["message"] = ""
 
+    session_df = dryrun_make_session_df()
+
     # Loop through dataframe, check session_id, reader_email
     for i in batch_df.index:
         # Check for valid session
@@ -780,15 +795,37 @@ def distribute_batch_to_readers(
             reader_row = dest_projects_df.loc[indx]
 
 
+            if not dry_run:
+                valid, message = check_valid_case_assignment(
+                    fw_client,
+                    session_id,
+                    reader_email,
+                    reader_group_id,
+                    reader_row,
+                    case_coverage,
+                )
+            else:
+                valid, message_or_index = dryrun_check_valid_case_assignment(
+                    fw_client, session_id, reader_email, reader_group_id, reader_row, session_df
+                )
 
-            valid, message = check_valid_case_assignment(
-                fw_client,
-                session_id,
-                reader_email,
-                reader_group_id,
-                reader_row,
-                case_coverage,
-            )
+                if valid:
+                    # At the moment the passed values aren't used
+                    passed = dryrun_update_projects_df(dest_projects_df, indx, session_id)
+                    # If we made it this far, message_or_index IS an index
+                    passed = dryrun_update_session_df(session_df, message_or_index)
+                    batch_df.loc[i, "passed"] = True
+                    batch_df.loc[i, "message"] = "Case would be assigned"
+
+                else:
+                    batch_df.loc[i, "passed"] = False
+                    batch_df.loc[i, "message"] = message_or_index
+
+                continue
+
+
+
+
         # This will be caught as a non-valid reader,
         # padding these variables to pass then to validation function.
         else:
@@ -804,8 +841,6 @@ def distribute_batch_to_readers(
             log.error(message)
             continue
 
-        if dry_run:
-            continue
 
         # With checks complete, assign indicated case to selected reader
         try:
@@ -856,6 +891,10 @@ def distribute_batch_to_readers(
                 "reader": {"id": reader_email}
             }
         }
+
+    if dry_run:
+        return source_sessions_df, dest_projects_df, pd.DataFrame(), batch_df
+
     if project_info:
         reader_proj.update_info(project_info)
 
@@ -890,4 +929,23 @@ def distribute_batch_to_readers(
     exported_data_df = pd.DataFrame(data=exported_data)
 
     return source_sessions_df, dest_projects_df, exported_data_df, batch_df
+
+
+def dryrun_update_projects_df(dest_projects_df, indx, src_session_id):
+    project_assignments = dest_projects_df.at[indx, 'assignments']
+
+    # This should be all checked already, but we will double check here:
+    if src_session_id in [s['source_session'] for s in project_assignments]:
+        log.error("Source session ID is in dest_project_df, but it SHOULD have been caught by the check_valid_case_ function...Weird...")
+        pass
+
+    project_assignments.append({'source_session':src_session_id, 'dest_session': "dry-run"})
+    dest_projects_df.at[indx,'assignments'] = project_assignments
+    pass
+
+def dryrun_update_session_df(session_df, index):
+    current_count = session_df.at[index, 'assigned_count']
+    session_df.at[index, 'assigned_count'] = current_count + 1
+    pass
+
 
