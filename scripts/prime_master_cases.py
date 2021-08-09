@@ -28,6 +28,7 @@ def prime_all_sessions_in_project(fw_client, project_id):
 
 
 if __name__ == "__main__":
-    fw_client = flywheel.Client("nyu.dev.flywheel.io:AykoM96O2UpbBaSb3p")
+    fw_client = flywheel.Client()
     for project_id in ["5f08e7e5fdf2ac0066a5ba79", "5f08c415fdf2ac005ea5b91b"]:
-        prime_all_sessions_in_project(fw_client, project_id)
+        print(project_id)
+        #prime_all_sessions_in_project(fw_client, project_id)

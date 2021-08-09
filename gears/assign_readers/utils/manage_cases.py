@@ -90,7 +90,7 @@ def define_reader_csv(context):
     """
     readers_df = []
     # regex for checking validity of readers email
-    regex = r"^[a-z0-9.]+[\._]?[a-z0-9.]+[@]\w+[.]\w{2,3}$"
+    regex = r"^[a-z0-9.]+[\._\-]?[a-z0-9.]+[@]\w+[.]\w{2,3}$"
     # Ensure valid inputs and act consistently
     reader_csv_path = context.get_input_path("reader_csv")
     if reader_csv_path:
@@ -303,6 +303,7 @@ def find_readers_in_projects(projects, reader_roles=None):
 
         if pf_reader is not None:
             reader_ids.append(pf_reader)
+
 
     return reader_ids
 
@@ -568,6 +569,7 @@ def create_or_update_reader_projects(
         new_project, created_container = create_project(
             fw_client, project_label, group, reader, project_info
         )
+
         if ohif_config_path and os.path.exists(ohif_config_path):
             new_project.upload_file(ohif_config_path)
 

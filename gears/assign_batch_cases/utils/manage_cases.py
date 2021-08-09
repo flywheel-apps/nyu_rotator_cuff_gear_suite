@@ -167,6 +167,8 @@ def find_readers_in_project_by_permission(project, reader_roles = None):
             log.debug(f"roles match {role_match}")
             reader_ids.append(perm.id)
 
+    log.debug(f'found: {reader_ids}')
+
     return reader_ids
 
 
@@ -189,6 +191,7 @@ def find_and_add_readers_by_perm(project, reader_roles=None):
     info = project.info
     proj_readers = find_readers_in_project_by_permission(project, reader_roles)
 
+    log.debug('adding reader id to project features')
     if len(proj_readers) > 1:
         log.warning("more than one possible reader found.  assuming first")
 
@@ -384,7 +387,7 @@ def check_valid_reader(fw_client, reader_id, group_id):
 
     valid_reader_ids = find_readers_in_projects(group_projects)
 
-    log.debug('Valid reader ids')
+    log.debug('Valid reader ids:')
     log.debug(valid_reader_ids)
 
     reader_project = None
@@ -502,6 +505,8 @@ def check_valid_case_assignment(
         tuple: (valid, message) indicating if valid and a message if not.
     """
 
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n case_coverage:{case_coverage}")
+
     # Check for valid session
     log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
 
@@ -574,8 +579,118 @@ def check_valid_case_assignment(
     return True, "All validation checks, passed."
 
 
+def dryrun_make_session_df():
+
+    columns = ['session_id','case_coverage','assigned_count']
+    session_df = pd.DataFrame(columns=columns)
+    return session_df
+
+
+
+def dryrun_check_valid_case_assignment(
+    fw_client, session_id, reader_email, reader_group_id, reader_row, session_df
+):
+    """
+    Checks the validity of a case/reader assignment for dry run.
+
+    This is pretty inefficient.
+
+    Args:
+        fw_client (flywheel.Client): Active Flywheel client object
+        session_id (str): The id of the session to assign to a `reader_email`.
+        reader_email (str): The email of the reader to assign the `session_id` to.
+        reader_group_id (str): The `id` of the reader group to check for projects.
+        reader_row (pandas.Series): The dataframe row depicting a reader's assignments.
+        case_coverage (int): The maximum number of assignments for a session/case.
+
+    Returns:
+        tuple: (valid, message) indicating if valid and a message if not.
+    """
+
+    log.debug(f"Checking assignment:\n session_id: {session_id}\n reader_email: {reader_email}\n reader_group_id:{reader_group_id}\n")
+
+    # Check for valid session
+    log.debug(f"Checking if {session_id} can be asigned to {reader_email}")
+
+    src_session = fw_client.sessions.find_first(f"_id={session_id}")
+    if not src_session:
+        message = (
+            f"Session with id ({session_id}) is not found within a Master Project. "
+            f"Proceeding without making this assignment to reader ({reader_email})."
+        )
+        return False, message, session_df
+    else:
+        src_session = src_session.reload()
+
+    log.debug('found source session')
+
+    # Check for the forbidden group.  This is bad and wrong and we should get rid of it
+    # TODO: Derive a test...tricky... because of created projects and sessions.
+    if src_session.parents["project"] is reader_group_id:
+        message = (
+            f"Session with id ({session_id}) belongs to a reader project.\n"
+            f"Please correctly identify the session in a Master Project and try again."
+        )
+        return False, message, session_df
+
+    # Check for valid Reader
+    reader_proj = check_valid_reader(fw_client, reader_email, reader_group_id)
+
+    if not reader_proj:
+        message = (
+            f"The reader, {reader_email}, has not been established. "
+            "Please run `assign-readers` to establish a project for this reader"
+        )
+        return False, message
+
+    # Check for the existence of the selected session in the reader project
+
+    reader_assignments = reader_row.get('assignments', None)
+
+    if reader_assignments and src_session.id in [
+        assnmt["source_session"] for assnmt in reader_assignments
+    ]:
+        message = (
+            f"Selected session ({src_session.label}) has already been assigned to "
+            f"reader ({reader_email})."
+        )
+        return False, message, session_df
+
+    # Check reader availability
+    if reader_row.num_assignments == reader_row.max_cases:
+        message = (
+            f"Cannot assign more than {reader_row.max_cases} cases to "
+            f"reader ({reader_email}). "
+            "Consider increasing max_cases for this reader "
+            "or choosing another reader."
+        )
+        return False, message, session_df
+
+    # Check session to ensure num_assignments < case_coverage
+    if session_id not in session_df['session_id']:
+        log.debug('DRY-RUN: adding new session to session_df')
+        session_features = src_session.info['session_features']
+        new_row = {'session_id':session_id, 'case_coverage':session_features.get('case_coverage'), 'assigned_count':session_features.get('assigned_count')}
+        session_df = session_df.append(new_row, ignore_index=True)
+
+    ses_idx = session_df[session_df['session_id'] == session_id].index[0]
+
+    session_features = session_df.iloc[ses_idx]
+    if session_features["assigned_count"] == session_features["case_coverage"]:
+        message = (
+            f"Assigning this case ({src_session.label}) exceeds "
+            f"case_coverage ({session_features['case_coverage']}) for this case."
+            "Assignment will not proceed."
+        )
+        return False, message, session_df
+
+    return True, ses_idx, session_df
+
+
+
+
 def distribute_batch_to_readers(
-    fw_client, source_project, reader_group_id, case_coverage, batch_csv_path
+    fw_client, source_project, reader_group_id, case_coverage, batch_csv_path, dry_run
 ):
     """
     Distribute batch of cases (sessions) from a source project to reader projects.
@@ -591,6 +706,7 @@ def distribute_batch_to_readers(
         reader_group_id (str): The Flywheel container id for the group in question
         case_coverage (int): The default number of readers assigned to each session
         batch_csv_path (str): Path to batch csv with case-reader assignments.
+        dry_run (bool): If true, do not make any assignments, just generate report on what would be assigned.
     Returns:
         tuple: Pandas DataFrames recording source and destination for
             each session exported.
@@ -614,8 +730,8 @@ def distribute_batch_to_readers(
     # Find or create reader group
     reader_group_label = fw_client.get_group(reader_group_id).label
     reader_group, _created_data = find_or_create_group(
-        fw_client, reader_group_id, reader_group_label
-    )
+            fw_client, reader_group_id, reader_group_label, dry_run
+        )
     created_data.extend(_created_data)
 
     # Initialize dataframes used to select sessions and readers without replacement
@@ -634,7 +750,6 @@ def distribute_batch_to_readers(
     batch_df = pd.read_csv(batch_csv_path)
 
     # check for required columns:
-    # TODO: I don't think session label is actually used.  Invistigate and remove.
     req_columns = ["session_id", "session_label", "reader_email"]
     if not all([(c in batch_df.columns) for c in req_columns]):
         joined_cols = ", ".join(req_columns)
@@ -646,6 +761,11 @@ def distribute_batch_to_readers(
 
     batch_df["passed"] = True
     batch_df["message"] = ""
+
+    session_df = dryrun_make_session_df()
+
+    log.debug("dest project dataframe:")
+    log.debug(dest_projects_df)
 
     # Loop through dataframe, check session_id, reader_email
     for i in batch_df.index:
@@ -660,8 +780,7 @@ def distribute_batch_to_readers(
         else:
             session_features = {}
 
-        log.debug("dest project dataframe:")
-        log.debug(dest_projects_df)
+
         # Locate Reader Project
         if reader_email in dest_projects_df.reader_id.values:
 
@@ -677,17 +796,42 @@ def distribute_batch_to_readers(
             project_id = dest_projects_df.loc[indx, "id"]
             reader_proj = fw_client.get(project_id).reload()
             reader_row = dest_projects_df.loc[indx]
+            log.debug('Reader row:')
+            log.debug(reader_row)
+
+
+            if not dry_run:
+                valid, message = check_valid_case_assignment(
+                    fw_client,
+                    session_id,
+                    reader_email,
+                    reader_group_id,
+                    reader_row,
+                    case_coverage,
+                )
+            else:
+
+                valid, message_or_index, session_df = dryrun_check_valid_case_assignment(
+                    fw_client, session_id, reader_email, reader_group_id, reader_row, session_df
+                )
+
+                if valid:
+                    # At the moment the passed values aren't used
+                    passed = dryrun_update_projects_df(dest_projects_df, indx, session_id)
+                    # If we made it this far, message_or_index IS an index
+                    passed = dryrun_update_session_df(session_df, message_or_index)
+                    batch_df.loc[i, "passed"] = True
+                    batch_df.loc[i, "message"] = "Case would be assigned"
+
+                else:
+                    batch_df.loc[i, "passed"] = False
+                    batch_df.loc[i, "message"] = message_or_index
+
+                continue
 
 
 
-            valid, message = check_valid_case_assignment(
-                fw_client,
-                session_id,
-                reader_email,
-                reader_group_id,
-                reader_row,
-                case_coverage,
-            )
+
         # This will be caught as a non-valid reader,
         # padding these variables to pass then to validation function.
         else:
@@ -703,11 +847,12 @@ def distribute_batch_to_readers(
             log.error(message)
             continue
 
+
         # With checks complete, assign indicated case to selected reader
         try:
             # export the session to the reader project
             dest_session, _exported_data, _created_data = export_session(
-                fw_client, src_session, fw_client.get(project_id)
+                fw_client, src_session, fw_client.get(project_id), dry_run
             )
 
             exported_data.extend(_exported_data)
@@ -752,6 +897,10 @@ def distribute_batch_to_readers(
                 "reader": {"id": reader_email}
             }
         }
+
+    if dry_run:
+        return source_sessions_df, dest_projects_df, pd.DataFrame(), batch_df
+
     if project_info:
         reader_proj.update_info(project_info)
 
@@ -786,4 +935,28 @@ def distribute_batch_to_readers(
     exported_data_df = pd.DataFrame(data=exported_data)
 
     return source_sessions_df, dest_projects_df, exported_data_df, batch_df
+
+
+def dryrun_update_projects_df(dest_projects_df, indx, src_session_id):
+
+    project_assignments = dest_projects_df.at[indx, 'assignments']
+
+    # This should be all checked already, but we will double check here:
+    if src_session_id in [s['source_session'] for s in project_assignments]:
+        log.error("Source session ID is in dest_project_df, but it SHOULD have been caught by the check_valid_case_ function...Weird...")
+        pass
+
+    dest_projects_df.at[indx, 'num_assignments'] += 1
+    project_assignments.append({'source_session': src_session_id, 'dest_session': "dry-run"})
+    dest_projects_df.at[indx, 'assignments'] = project_assignments
+
+    pass
+
+
+def dryrun_update_session_df(session_df, index):
+    log.debug(f"getting index {index} from session_df")
+    current_count = session_df.at[index, 'assigned_count']
+    session_df.at[index, 'assigned_count'] = current_count + 1
+    pass
+
 

@@ -8,7 +8,7 @@
     "url": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/",
     "source": "https://github.com/flywheel-apps/nyu_rotator_cuff_gear_suite/gears/assign_cases",
     "cite": "",
-    "version": "0.3.0b",
+    "version": "0.3.2a",
     "custom": {
         "docker-image": "flywheel/assign-cases:0.3.0",
         "gear-builder": {
