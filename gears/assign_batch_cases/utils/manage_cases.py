@@ -947,8 +947,7 @@ def dryrun_update_projects_df(dest_projects_df, indx, src_session_id):
         pass
 
     dest_projects_df.at[indx, 'num_assignments'] += 1
-
-    project_assignments.append({'source_session':src_session_id, 'dest_session': "dry-run"})
+    project_assignments.append({'source_session': src_session_id, 'dest_session': "dry-run"})
     dest_projects_df.at[indx, 'assignments'] = project_assignments
 
     pass
