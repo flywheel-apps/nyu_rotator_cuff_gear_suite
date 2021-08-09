@@ -3,6 +3,7 @@ import codecs
 from ast import literal_eval as leval
 from pathlib import Path
 import json
+import copy
 
 from flywheel import ApiException
 import numpy as np
@@ -406,7 +407,7 @@ def copy_rois_to_source(fw_client, session):
 
     # Get the ohifViewer object or initialize from OHIF_VIEWER_REC if not present.
     if "ohifViewer" not in session.info:
-        ohif_viewer = OHIF_VIEWER_REC.copy()
+        ohif_viewer = copy.deepcopy(OHIF_VIEWER_REC)
     else:
         ohif_viewer = session.info.get("ohifViewer")
 
@@ -415,7 +416,7 @@ def copy_rois_to_source(fw_client, session):
     # LIST COMPREHENSION!  THIS ONE'S FOR YOU JOSH!  MAKIN YOU PROUD!
     # Note, reads will be handled differently
     measurement_ids = [
-        meas.get("_id")
+        meas.get("uuid")
         for mtype in ohif_viewer.get("measurements", "")
         for meas in ohif_viewer.get("measurements", {}).get(mtype)
         if meas
@@ -440,7 +441,7 @@ def copy_rois_to_source(fw_client, session):
                 if meas_type not in ohif_viewer.get(namespace, {}):
 
                     for current_meas in assignment_measurements[meas_type]:
-                        current_meas["FromBlindReader"] = True
+                        current_meas["ImportMethod"] = "GatherCases"
 
                     ohif_viewer[namespace][meas_type] = assignment_measurements[
                         meas_type
@@ -458,7 +459,7 @@ def copy_rois_to_source(fw_client, session):
                         if current_meas_id not in measurement_ids:
                             # add a boolean "FromBlindReader" key to help distinguish
                             # that these came from the blind reader gear.
-                            current_meas["FromBlindReader"] = True
+                            current_meas["ImportMethod"] = "GatherCases"
                             ohif_viewer[namespace][meas_type].append(current_meas)
                             measurement_ids.append(current_meas_id)
 
@@ -494,7 +495,7 @@ def copy_rois_to_source(fw_client, session):
                     log.debug(f"current_read: {current_read}")
                     # add a boolean "FromBlindReader" key to help distinguish
                     # that these came from the blind reader gear.
-                    current_read["FromBlindReader"] = True
+                    current_read["ImportMethod"] = "GatherCases"
 
                     # See if the reader id is already in the ohifViewer "reads"
                     if reader_id not in ohif_viewer[namespace]:
@@ -682,7 +683,7 @@ def fill_reader_case_data(fw_client, project_features, session):
             continue
 
         assigned_session_info = assigned_session.info
-        case_assignment_status = CASE_ASSESSMENT_REC.copy()
+        case_assignment_status = copy.deepcopy(CASE_ASSESSMENT_REC)
         case_assignment_status["reader session id"] = session.id
         case_assignment_status["reader session label"] = session.label
 
@@ -851,7 +852,7 @@ def gather_case_data_from_readers(fw_client, source_project, copyroi=False):
     # Create a DataFrame to record the state of each assessment by a reader
     case_assessment_df = pd.DataFrame(columns=CASE_ASSESSMENT_REC.keys())
 
-    src_sessions = fw_client.sessions.iter_find(f'project={source_projec.id}', limit=100)
+    src_sessions = fw_client.sessions.iter_find(f'project={source_project.id}', limit=100)
 
     # for each session found
     for session in src_sessions:
